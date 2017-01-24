@@ -4,6 +4,10 @@ machine:
     - docker
   environment:
     EXPOSED_PORT: 8080
+  # hint for using docker-engine 1.10.0 which is required by docker-compose
+  # https://discuss.circleci.com/t/docker-1-10-0-is-available-beta/2100
+  pre:
+    - curl -sSL https://s3.amazonaws.com/circle-downloads/install-circleci-docker.sh | bash -s -- 1.10.0
 
 dependencies:
   override:
