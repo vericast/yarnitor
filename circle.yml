@@ -1,0 +1,15 @@
+# circle.yml
+machine:
+  services:
+    - docker
+  environment:
+    EXPOSED_PORT: 8080
+
+dependencies:
+  override:
+    - pip install docker-compose
+    - EXPOSED_PORT=8080 docker-compose build
+
+test:
+  override:
+    - docker-compose run --rm web pytest
