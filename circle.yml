@@ -19,4 +19,4 @@ dependencies:
 test:
   override:
     - docker --version
-    - docker-compose run --rm web pytest
+    - docker-compose run web pytest
