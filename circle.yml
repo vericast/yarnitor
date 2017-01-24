@@ -14,9 +14,8 @@ dependencies:
   override:
     - docker --version
     - pip install docker-compose
-    - EXPOSED_PORT=8080 docker-compose build
 
 test:
   override:
     - docker --version
-    - docker-compose run web pytest
+    - make test
