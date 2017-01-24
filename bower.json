@@ -1,0 +1,25 @@
+{
+  "name": "yarnitor",
+  "authors": [
+    "MaxPoint Interactive"
+  ],
+  "description": "Yarnitor is a YARN monitor.",
+  "main": "",
+  "license": "BSD-3-Clause",
+  "homepage": "",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "yarnitor/static/bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "datatables.net": "^1.10.12",
+    "mustache.js": "mustache#^2.2.1",
+    "bootstrap": "^3.3.7",
+    "datatables.net-bs": "^1.10.12"
+  }
+}

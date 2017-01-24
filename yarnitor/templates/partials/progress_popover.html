@@ -1,0 +1,24 @@
+{% raw %}
+<script id="progress_popover_tmpl" type="x-tmpl-mustache">
+<table class="table">
+    <thead>
+        <tr>
+            <th></th>
+            <th class="completed">Completed</th>
+            <th class="info">Running</th>
+            <th class="danger">Failed</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#progress}}
+        <tr>
+            <th>{{name}}</th>
+            <td>{{completed}}</td>
+            <td>{{running}}</td>
+            <td>{{failed}}</td>
+        </tr>
+        {{/progress}}
+    </tbody>
+</table>
+</script>
+{% endraw %}

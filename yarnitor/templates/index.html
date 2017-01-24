@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+        <title>Yarnitor - A YARN Monitor</title>
+
+        <!-- Font for title -->
+        <link href="https://fonts.googleapis.com/css?family=Finger+Paint" rel="stylesheet">
+
+        <link rel="shortcut icon"
+              href="{{ url_for('ui.static', filename='image/favicon.ico') }}"
+              type="image/x-icon">
+        <link rel="icon"
+              href="{{ url_for('ui.static', filename='image/favicon.ico') }}"
+              type="image/x-icon">
+
+        <link rel="stylesheet"
+              href="{{ url_for('ui.static', filename='bower_components/datatables.net-bs/css/dataTables.bootstrap.min.css') }}"
+              type="text/css">
+        <link rel="stylesheet"
+              href="{{ url_for('ui.static', filename='bower_components/bootstrap/dist/css/bootstrap.min.css') }}"
+              type="text/css">
+        <link rel="stylesheet"
+              href="{{ url_for('ui.static', filename='css/main.css') }}"
+              type="text/css">
+
+        <script src="{{ url_for('ui.static', filename='bower_components/jquery/dist/jquery.min.js') }}"></script>
+        <script src="{{ url_for('ui.static', filename='bower_components/bootstrap/dist/js/bootstrap.min.js') }}"></script>
+        <script src="{{ url_for('ui.static', filename='bower_components/datatables.net/js/jquery.dataTables.min.js') }}"></script>
+        <script src="{{ url_for('ui.static', filename='bower_components/datatables.net-bs/js/dataTables.bootstrap.min.js') }}"></script>
+        <script src="{{ url_for('ui.static', filename='bower_components/mustache.js/mustache.min.js') }}"></script>
+        <script src="{{ url_for('ui.static', filename='js/main.js') }}"></script>
+    </head>
+    <body>
+        <div class="container-fluid">
+            <div class="row title">
+                <div class="col-xs-3">
+                    <h1>
+                        <img class="logo" src="{{ url_for('ui.static', filename='image/logo-256x256.png') }}" />
+                        <span class="title" style="font-family: 'Finger Paint', cursive;">Yarnitor</span>
+                    </h1>
+                </div>
+		<div class="col-xs-4">
+            <table id="yarn_status" class="nowrap table table-condensed" width="100%" cellspacing="0"></table>
+		</div>
+            </div>
+            <div class="row jobs">
+                <div class="col-sm-12">
+                    <table id="yarn_applications" class="nowrap table table-striped" width="100%" cellspacing="0"></table>
+                </div>
+            </div>
+        </div>
+
+        {% include "partials/progress_popover.html" %}
+        {% include "partials/name_link.html" %}
+        {% include "partials/progress_container.html" %}
+        {% include "partials/progress.html" %}
+    </body>
+</html>

@@ -1,0 +1,79 @@
+html, body {
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
+}
+
+.row.title {
+    position: absolute;
+    top: 0;
+    left: 10px;
+    right: 10px;
+    height: 70px;
+    overflow: hidden;
+}
+
+.row.jobs {
+    position: absolute;
+    top: 20px;
+    left: 10px;
+    right: 10px;
+    bottom: 0;
+    overflow: hidden;
+}
+
+#yarn_applications .progress {
+    height: 10px;
+    margin-bottom: 2px;
+}
+
+.dataTables_wrapper > .row:first-of-type {
+    margin-bottom: 30px;
+}
+
+.dataTables_wrapper label {
+    color: #999;
+}
+
+.dataTables_info {
+    color: #999;
+}
+
+.dataTables_refreshed {
+    color: #999;
+    padding-top: 8px;
+    text-align: right;
+}
+
+body .popover {
+    max-width: none;
+}
+
+.completed {
+    background-color: #337ab7;
+    color: white;
+}
+
+.logo {
+    vertical-align: middle;
+    height: 70px;
+}
+
+h1 {
+    margin: 0;
+    padding: 0;
+}
+
+h1 .title {
+    vertical-align: middle;
+}
+
+/* Bootstrap overrides */
+.progress-bar {
+    background-color: #82a1ff;
+}
+
+.progress-bar-info {
+    background-color: #ccd8ff;
+}
+

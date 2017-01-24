@@ -1,0 +1,27 @@
+{% raw %}
+<script id="progress_tmpl" type="x-tmpl-mustache">
+<div class="progress">
+    <div class="progress-bar"
+         role="progressbar"
+         aria-valuenow="{{ completed }}"
+         aria-valuemin="0"
+         aria-valuemax="{{ total }}"
+         style="width: {{ completed_ratio }}%">
+    </div>
+    <div class="progress-bar progress-bar-info progress-bar-striped active"
+         role="progressbar"
+         aria-valuenow="{{ running }}"
+         aria-valuemin="0"
+         aria-valuemax="{{ total }}"
+         style="width: {{ running_ratio }}%">
+    </div>
+    <div class="progress-bar progress-bar-danger"
+         role="progressbar"
+         aria-valuenow="{{ failed }}"
+         aria-valuemin="0"
+         aria-valuemax="{{ total }}"
+         style="width: {{ failed_ratio }}%">
+    </div>
+</div>
+</script>
+{% endraw %}

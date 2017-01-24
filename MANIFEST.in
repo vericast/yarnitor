@@ -1,0 +1,5 @@
+include versioneer.py
+include yarnitor/_version.py
+recursive-include yarnitor/templates *
+recursive-include yarnitor/static *
+

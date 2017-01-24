@@ -1,0 +1,5 @@
+flask==0.11.*
+flask-cache
+flask-redis==0.3.0
+gunicorn==19.6.*
+requests

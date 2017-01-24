@@ -1,0 +1,42 @@
+---
+version: "2"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "$EXPOSED_PORT:8080"
+    depends_on:
+      - redis
+      - background
+    links:
+      - redis
+    environment:
+      REDIS_ENDPOINT: "redis:6379"
+      # This is the url to your yarn nodemanager.  This is required to be present when you run docker compose
+      # eg:   http://yarn-application-master.mydomain:8088/
+      YARN_ENDPOINT:
+    restart: always
+
+  background:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - redis
+    links:
+      - redis
+    command: yarnitor-background-worker
+    environment:
+      REDIS_ENDPOINT: "redis:6379"
+      # This is the url to your yarn nodemanager.  This is required to be present when you run docker compose
+      # eg:   http://yarn-application-master.mydomain:8088/
+      YARN_ENDPOINT:
+      YARN_POLL_SLEEP: 15
+    restart: always
+
+  redis:
+    image: redis:alpine
+    restart: always
