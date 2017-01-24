@@ -39,7 +39,7 @@ docker-compose up
 
 ## Develop
 
-To run the yarnitor web app with debugging enabled, the backgroudn YARN polling
+To run the yarnitor web app with debugging enabled, the background YARN polling
 process, and Redis in linked Docker containers for development, run the following:
 
 ```bash
