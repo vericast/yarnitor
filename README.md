@@ -2,6 +2,8 @@ Yarnitor is a pluggable YARN monitoring API and web frontend.
 
 ![Yarnitor screenshot](./screenshot.png)
 
+[![CircleCI](https://circleci.com/gh/maxpoint/yarnitor/tree/master.svg?style=svg)](https://circleci.com/gh/maxpoint/yarnitor/tree/master)
+
 ## Requirements
 
 Yarnitor relies on multiple processes, and is therefore best run using the
