@@ -2,6 +2,8 @@ Yarnitor is a pluggable YARN monitoring API and web frontend.
 
 ![Yarnitor screenshot](./screenshot.png)
 
+[![CircleCI](https://circleci.com/gh/maxpoint/yarnitor/tree/master.svg?style=svg)](https://circleci.com/gh/maxpoint/yarnitor/tree/master)
+
 ## Requirements
 
 Yarnitor relies on multiple processes, and is therefore best run using the
@@ -39,7 +41,7 @@ docker-compose up
 
 ## Develop
 
-To run the yarnitor web app with debugging enabled, the backgroudn YARN polling
+To run the yarnitor web app with debugging enabled, the background YARN polling
 process, and Redis in linked Docker containers for development, run the following:
 
 ```bash
