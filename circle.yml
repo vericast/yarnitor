@@ -14,7 +14,7 @@ dependencies:
   override:
     - docker --version
     - pip install docker-compose
-    - EXPOSED_PORT=8080 docker-compose build
+    - docker-compose build
 
 test:
   override:
