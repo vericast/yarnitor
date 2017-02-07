@@ -328,8 +328,7 @@ class YARNModel(object, metaclass=Singleton):
     def run_update(self):
         """Single step for the update listing"""
         logger.debug("generating listing")
-        listing = self._generate_listing()
-        self.state["current"] = listing
+        self.state["current"] = self._generate_listing()
         self.state["cluster-metrics"] = self.yarn_handler.cluster_metrics()
         redis_client.set(YARN_STATUS_KEY, json.dumps(self.state))
 
