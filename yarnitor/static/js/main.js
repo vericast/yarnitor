@@ -2,7 +2,6 @@ $(document).ready(function() {
     'use strict';
 
     var MAX_NAME_LENGTH = 50;
-    var REFRESH_INTERVAL_S = 5;
 
     // Prep templates located in the HTML
     var name_tmpl = $('#name_tmpl').html();
@@ -43,7 +42,7 @@ $(document).ready(function() {
            },
            {
                data: "totalMB",
-               title: "Memory (GB)", 
+               title: "Memory (GB)",
                render: function(data) {
                     return Math.round(data / 1024);
                }
@@ -155,8 +154,9 @@ $(document).ready(function() {
 
     setInterval(function() {
         table.ajax.reload();
+        table_cluster.ajax.reload();
         console.log('yarnitor:refresh');
-    }, REFRESH_INTERVAL_S * 1000);
+    }, YARNITOR_REFRESH_INTERVAL_S * 1000);
 
     console.log('yarnitor:dom-ready');
 });
