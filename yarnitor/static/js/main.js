@@ -158,5 +158,8 @@ $(document).ready(function() {
         console.log('yarnitor:refresh');
     }, YARNITOR_REFRESH_INTERVAL_S * 1000);
 
+    // Throw exceptions in the console, not in alert dialogs
+    $.fn.dataTable.ext.errMode = 'throw';
+
     console.log('yarnitor:dom-ready');
 });
