@@ -29,7 +29,7 @@ $(document).ready(function() {
 
     // Cluster status table.
     var cluster_table = $("#yarn_status").DataTable({
-       ajax: "/api/cluster",
+       ajax: YARNITOR_BASE_URL+"/api/cluster",
        paging: false,
        searching: false,
        ordering: false,
@@ -53,7 +53,7 @@ $(document).ready(function() {
 
     // Main applications table
     var table = $('#yarn_applications').DataTable({
-        ajax: "/api/applications",
+        ajax: YARNITOR_BASE_URL+"/api/applications",
         rowId: "id",
         scrollX: true,
         scrollY: calcHeight(),
@@ -139,9 +139,8 @@ $(document).ready(function() {
         console.log('yarnitor:draw.dt');
         // Remove shown popovers
         $('.popover').remove();
-        // TODO: leaky? is there an event where we can disconnect the dom handlers before the redraw?
         $('[data-toggle="popover"]').popover();
-	// rescroll
+        // rescroll
         $('div.dataTables_scrollBody').scrollTop(pageScrollPos);
     });
 

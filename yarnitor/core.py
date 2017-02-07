@@ -11,6 +11,8 @@ app = Flask(__name__)
 app.config['FLASK_TESTING'] = os.getenv('FLASK_TESTING')
 # Which redis to talk to
 app.config["REDIS_URL"] = "redis://" + os.getenv("REDIS_ENDPOINT", "localhost:6379")
+# Base URL of the application root
+app.config['BASE_URL'] = os.getenv('SCRIPT_NAME', '')
 
 # Register blueprints for APIs
 app.register_blueprint(api_bp)
