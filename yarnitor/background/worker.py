@@ -308,10 +308,9 @@ class YARNModel(object, metaclass=Singleton):
             # Due to timing things happening here some of our calls may fail
             except requests.exceptions.ReadTimeout:
                 pass
-            except Exception as e:
-                import traceback
-                logging.error("Error for application %s %s", app["id"], app["name"])
-                logging.error(traceback.format_exc())
+            except Exception as ex:
+                logger.error("Error for application %s %s", app["id"], app["name"])
+                logger.exception(ex)
             # Falling back to just the yarn information
             if std_info is None:
                 ah = BaseHandler.from_yarn_application_info(app)
