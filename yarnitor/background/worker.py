@@ -284,6 +284,11 @@ class YARNModel(object, metaclass=Singleton):
         Returns
         -------
         instance of BaseApplicationInfo
+
+        Raises
+        ------
+        KeyError
+            When the response from YARN does not contain the expected app structure
         """
         app_type = yarn_application_info['applicationType']
         klass = self.application_handlers.get(app_type, BaseHandler)
