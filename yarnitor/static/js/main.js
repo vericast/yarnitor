@@ -154,7 +154,7 @@ $(document).ready(function() {
 
     setInterval(function() {
         table.ajax.reload();
-        table_cluster.ajax.reload();
+        cluster_table.ajax.reload();
         console.log('yarnitor:refresh');
     }, YARNITOR_REFRESH_INTERVAL_S * 1000);
 

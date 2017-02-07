@@ -35,4 +35,5 @@ class YARNModel(object, metaclass=Singleton):
         return self.state.get("current", {}).get(application_id, {})
 
     def cluster_metrics(self):
-        return self.state.get("cluster-metrics", {'clusterMetrics': {}})
+        metrics = self.state.get("cluster-metrics", {})
+        return metrics.get('clusterMetrics', {})

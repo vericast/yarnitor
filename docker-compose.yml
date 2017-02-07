@@ -17,7 +17,7 @@ services:
     environment:
       REDIS_ENDPOINT: "redis:6379"
       YARN_POLL_SLEEP: 15
-     restart: always
+    restart: always
 
   background:
     build:
