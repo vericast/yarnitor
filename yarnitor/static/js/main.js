@@ -2,7 +2,6 @@ $(document).ready(function() {
     'use strict';
 
     var MAX_NAME_LENGTH = 50;
-    var REFRESH_INTERVAL_S = 5;
 
     // Prep templates located in the HTML
     var name_tmpl = $('#name_tmpl').html();
@@ -29,7 +28,7 @@ $(document).ready(function() {
 
     // Cluster status table.
     var cluster_table = $("#yarn_status").DataTable({
-       ajax: "/api/cluster",
+       ajax: YARNITOR_BASE_URL+"/api/cluster",
        paging: false,
        searching: false,
        ordering: false,
@@ -43,7 +42,7 @@ $(document).ready(function() {
            },
            {
                data: "totalMB",
-               title: "Memory (GB)", 
+               title: "Memory (GB)",
                render: function(data) {
                     return Math.round(data / 1024);
                }
@@ -53,7 +52,7 @@ $(document).ready(function() {
 
     // Main applications table
     var table = $('#yarn_applications').DataTable({
-        ajax: "/api/applications",
+        ajax: YARNITOR_BASE_URL+"/api/applications",
         rowId: "id",
         scrollX: true,
         scrollY: calcHeight(),
@@ -139,9 +138,8 @@ $(document).ready(function() {
         console.log('yarnitor:draw.dt');
         // Remove shown popovers
         $('.popover').remove();
-        // TODO: leaky? is there an event where we can disconnect the dom handlers before the redraw?
         $('[data-toggle="popover"]').popover();
-	// rescroll
+        // rescroll
         $('div.dataTables_scrollBody').scrollTop(pageScrollPos);
     });
 
@@ -156,8 +154,12 @@ $(document).ready(function() {
 
     setInterval(function() {
         table.ajax.reload();
+        cluster_table.ajax.reload();
         console.log('yarnitor:refresh');
-    }, REFRESH_INTERVAL_S * 1000);
+    }, YARNITOR_REFRESH_INTERVAL_S * 1000);
+
+    // Throw exceptions in the console, not in alert dialogs
+    $.fn.dataTable.ext.errMode = 'throw';
 
     console.log('yarnitor:dom-ready');
 });

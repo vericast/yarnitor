@@ -15,7 +15,7 @@ dev: build ## Make a dev flask server
 		--rm \
 		-e FLASK_APP=yarnitor \
 		-e FLASK_DEBUG=1 \
-		-p 5000:5000 \
+		-p $(EXPOSED_PORT):5000 \
 		web \
 		flask run -h 0.0.0.0
 

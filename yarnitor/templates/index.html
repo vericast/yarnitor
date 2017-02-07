@@ -34,6 +34,10 @@
         <script src="{{ url_for('ui.static', filename='bower_components/datatables.net-bs/js/dataTables.bootstrap.min.js') }}"></script>
         <script src="{{ url_for('ui.static', filename='bower_components/mustache.js/mustache.min.js') }}"></script>
         <script src="{{ url_for('ui.static', filename='js/main.js') }}"></script>
+        <script>
+            var YARNITOR_BASE_URL = '{{ config["BASE_URL"] }}';
+            var YARNITOR_REFRESH_INTERVAL_S = '{{ config["YARN_POLL_SLEEP"] }}';
+        </script>
     </head>
     <body>
         <div class="container-fluid">

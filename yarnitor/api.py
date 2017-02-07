@@ -38,4 +38,4 @@ def get_application(app_id):
 @api_bp.route('/api/cluster')
 def get_cluster():
     ym = get_model()
-    return jsonify({"data": [ym.cluster_metrics()["clusterMetrics"]]})
+    return jsonify({"data": [ym.cluster_metrics()]})

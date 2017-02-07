@@ -23,13 +23,11 @@ RUN conda install nodejs -y -c conda-forge && \
     npm uninstall -g bower && \
     conda remove nodejs -y
 
+# never run as the default root user
+RUN useradd -ms /bin/bash yarnitor
+
 # install yarnitor last to get the most caching
 COPY . /usr/src/app
 RUN pip install .
 
-# never run as the default root user
-RUN useradd -ms /bin/bash yarnitor
 USER yarnitor
-# configure gunicorn concurrency
-ENV WEB_CONCURRENCY 5
-CMD ["gunicorn", "-b", "0.0.0.0:8080", "--access-logfile", "-", "yarnitor:app"]

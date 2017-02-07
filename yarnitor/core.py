@@ -11,6 +11,10 @@ app = Flask(__name__)
 app.config['FLASK_TESTING'] = os.getenv('FLASK_TESTING')
 # Which redis to talk to
 app.config["REDIS_URL"] = "redis://" + os.getenv("REDIS_ENDPOINT", "localhost:6379")
+# Base URL of the application root
+app.config['BASE_URL'] = os.getenv('SCRIPT_NAME', '')
+# Interval between calls to fetch new data
+app.config['YARN_POLL_SLEEP'] = os.getenv('YARN_POLL_SLEEP', 15)
 
 # Register blueprints for APIs
 app.register_blueprint(api_bp)
