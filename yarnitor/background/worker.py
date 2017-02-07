@@ -310,12 +310,12 @@ class YARNModel(object, metaclass=Singleton):
             try:
                 ah = self._make_application_handler(app)
                 std_info = ah.generate_standardized_info(app)
-            # Due to timing things happening here some of our calls may fail
-            except requests.exceptions.ReadTimeout:
-                pass
             except Exception as ex:
-                logger.error("Error for application %s %s", app["id"], app["name"])
-                logger.exception(ex)
+                # For now, we log all exceptions as errors, but we should
+                # be more selective about what we catch and handle as a
+                # passing warning versus let bubble because it's a real problem
+                logger.exception("Error for application %s %s", app["id"],
+                                 app["name"])
             # Falling back to just the yarn information
             if std_info is None:
                 ah = BaseHandler.from_yarn_application_info(app)
@@ -342,7 +342,7 @@ class YARNModel(object, metaclass=Singleton):
             try:
                 self.run_update()
             except Exception as ex:
-                logger.exception(ex)
+                logger.exception()
             time.sleep(self.sleep_time)
 
     def close(self):
