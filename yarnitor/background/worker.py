@@ -2,14 +2,13 @@
 Background processing script for polling yarn and getting things from it.
 
 Environment Variables
-=======================
+=====================
 YARN_ENDPOINT
     host:port for yarn api
 YARN_POLL_SLEEP
     time to sleep between polling in seconds
 REDIS_ENDPOINT :
     host:port for a redis instance
-
 """
 
 import atexit
@@ -66,7 +65,8 @@ class YarnApi(object):
 
 
 class BaseHandler(object):
-    """Basic handler class providing the scaffolding that the rest of the library expects.
+    """Basic handler class providing the scaffolding that the rest of the
+    library expects.
 
     """
     prefix = ""
@@ -78,7 +78,8 @@ class BaseHandler(object):
 
     @classmethod
     def from_yarn_application_info(cls, info):
-        """Alterbate constructor creating an instance from the output of a yarn application listing
+        """Alternate constructor creating an instance from the output of a yarn
+        application listing
 
         Parameters
         ----------
@@ -103,14 +104,16 @@ class BaseHandler(object):
         dict
         """
         final_url = (self.prefix + url).format(version=self.version, **self.__dict__)
-        # Under some security models for YARN going to the tracking url required clicking through a security prompt.
+        # Under some security models for YARN going to the tracking url
+        # required clicking through a security prompt.
         # This presets that cookie.
         cookies = {"checked_{}".format(self.application_id): 'true'}
         resp = requests.get(final_url, params, cookies=cookies, timeout=10)
         return resp.json()
 
     def generate_standardized_info(self, yarn_application_info):
-        """Generates the standardized dictionary of fields that are expected by listing applications
+        """Generates the standardized dictionary of fields that are expected by
+        listing applications.
 
         Parameters
         ----------
@@ -120,16 +123,19 @@ class BaseHandler(object):
         -------
         dict
         """
-        verbatim_fields = ["id", "name", "user", "applicationType", "queue", "startedTime",
-                           "allocatedMB", "allocatedVCores", "trackingUrl", "state",
-                           "memorySeconds", "vcoreSeconds"]
+        verbatim_fields = ["id", "name", "user", "applicationType", "queue",
+                           "startedTime", "allocatedMB", "allocatedVCores",
+                           "trackingUrl", "state", "memorySeconds",
+                           "vcoreSeconds"]
 
         r = {k: yarn_application_info[k] for k in verbatim_fields}
         # defaults
         r["job"] = "1"
 
-        # Progress should contain various progress records formatted as follows.
-        # This is the fallback progress handler for when we do not have a handler for the specific yarn application
+        # Progress should contain various progress records formatted as
+        # follows.
+        # This is the fallback progress handler for when we do not have a
+        # handler for the specific yarn application
         # type.
         r["progress"] = [
             {
@@ -267,8 +273,9 @@ class YARNModel(object, metaclass=Singleton):
         self.application_handlers[application_type] = handler_class
 
     def _make_application_handler(self, yarn_application_info):
-        """Generates a handler for the given yarn application info.  This allows pluggability for different kinds
-        of applications.
+        """Generates a handler for the given yarn application info.
+
+        This allows pluggability for different kinds of applications.
 
         Parameters
         ----------
@@ -278,15 +285,20 @@ class YARNModel(object, metaclass=Singleton):
         -------
         instance of BaseApplicationInfo
         """
-        klass = self.application_handlers.get(yarn_application_info["applicationType"], BaseHandler)
+        app_type = yarn_application_info['applicationType']
+        klass = self.application_handlers.get(app_type, BaseHandler)
         return klass.from_yarn_application_info(yarn_application_info)
 
     def _generate_listing(self):
-        """Computes the listing of applications and the additional information provided by the handlers.
+        """Computes the listing of applications and the additional information
+        provided by the handlers.
 
         """
-        a = self.yarn_handler.cluster_applications("RUNNING")
-        apps = a["apps"]["app"]
+        cluster_apps = self.yarn_handler.cluster_applications("RUNNING")
+        if 'apps' not in cluster_apps or cluster_apps['apps'] is None:
+            logger.warn('No application data available')
+            return {}
+        apps = cluster_apps['apps']['app']
 
         def run_task(app):
             std_info = None
@@ -317,14 +329,17 @@ class YARNModel(object, metaclass=Singleton):
     def run_update(self):
         """Single step for the update listing"""
         logger.debug("generating listing")
-        l = self._generate_listing()
-        self.state["current"] = l
+        listing = self._generate_listing()
+        self.state["current"] = listing
         self.state["cluster-metrics"] = self.yarn_handler.cluster_metrics()
         redis_client.set(YARN_STATUS_KEY, json.dumps(self.state))
 
     def loop(self):
         while True:
-            self.run_update()
+            try:
+                self.run_update()
+            except Exception as ex:
+                logger.exception(ex)
             time.sleep(self.sleep_time)
 
     def close(self):

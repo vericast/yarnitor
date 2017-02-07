@@ -20,21 +20,19 @@ class YARNModel(object, metaclass=Singleton):
     """Model class that exposes various yarn metrics.
 
     Backed by redis.
-
     """
 
     @property
     @cache.cached(timeout=2, key_prefix="yarnmodel.state")
     def state(self):
-        return json.loads(redis_store.get(YARN_STATUS_KEY))
+        state = redis_store.get(YARN_STATUS_KEY)
+        return json.loads(state) if state is not None else {}
 
     def applications(self):
-        print(self)
-        print("ALL_INFO {}".format(str(self.state)[:80]))
-        return self.state["current"]
+        return self.state.get("current", {})
 
     def application_info(self, application_id):
-        return self.state["current"].get(application_id, {})
+        return self.state.get("current", {}).get(application_id, {})
 
     def cluster_metrics(self):
-        return self.state["cluster-metrics"]
+        return self.state.get("cluster-metrics", {'clusterMetrics': {}})
