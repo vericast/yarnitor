@@ -320,7 +320,7 @@ class YARNModel(object, metaclass=Singleton):
             if std_info is None:
                 ah = BaseHandler.from_yarn_application_info(app)
                 std_info = ah.generate_standardized_info(app)
-                std_info["state"] = "NON_RESPONSIVE"
+                std_info["state"] = "UNKNOWN"
 
             return std_info
 
