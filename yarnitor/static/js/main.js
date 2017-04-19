@@ -2,6 +2,7 @@ $(document).ready(function() {
     'use strict';
 
     var MAX_NAME_LENGTH = 50;
+    var WINDOW_HEIGHT = 165;
 
     // Prep templates located in the HTML
     var name_tmpl = $('#name_tmpl').html();
@@ -18,7 +19,7 @@ $(document).ready(function() {
     // Handle vertical resizing of the table
     function calcHeight() {
         // TODO: oh god, remove the hardcode!
-        return $(window).height() - 165;
+        return $(window).height() - WINDOW_HEIGHT;
     }
 
     $(window).on('resize', function() {
@@ -38,11 +39,22 @@ $(document).ready(function() {
            {data: "unhealthyNodes", title: "Unhealthy Nodes"},
            {
                 data: "totalVirtualCores",
-                title: "VCores (Total)"
+                title: "Total VCPU"
+           },
+           {
+                data: "availableVirtualCores",
+                title: "Avail VCPU"
            },
            {
                data: "totalMB",
-               title: "Memory (GB)",
+               title: "Total Mem (GB)",
+               render: function(data) {
+                    return Math.round(data / 1024);
+               }
+           },
+           {
+               data: "availableMB",
+               title: "Avail Mem (GB)",
                render: function(data) {
                     return Math.round(data / 1024);
                }
