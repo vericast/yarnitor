@@ -40,11 +40,6 @@ linked Docker containers, run the following:
 docker-compose up
 ```
 
-## Access
-
-yarnitor will be accessible through localhost:XXXX where XXXX is whatever was set in the
-environment variable EXPOSED_PORT
-
 ## Develop
 
 To run the yarnitor web app with debugging enabled, the background YARN polling
