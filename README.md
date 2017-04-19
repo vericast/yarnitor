@@ -10,7 +10,8 @@ Yarnitor relies on multiple processes, and is therefore best run using the
 provided Docker configuration. You install Docker on
 [Windows](https://docs.docker.com/docker-for-windows/),
 [OSX](https://docs.docker.com/docker-for-mac/), or
-[Linux](https://docs.docker.com/engine/installation/linux/). You'll
+[Linux](https://docs.docker.com/engine/installation/linux/). You will also need
+install [docker-compose](https://docs.docker.com/compose/install/). You'll
 specifically need:
 
 * docker>=1.10
@@ -38,6 +39,11 @@ linked Docker containers, run the following:
 ```bash
 docker-compose up
 ```
+
+## Access
+
+yarnitor will be accessible through localhost:XXXX where XXXX is whatever was set in the
+environment variable EXPOSED_PORT
 
 ## Develop
 
