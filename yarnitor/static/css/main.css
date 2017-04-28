@@ -65,8 +65,11 @@ body .popover {
 }
 
 .completed {
-    background-color: #337ab7;
-    color: white;
+    background-color: #ccd8ff;
+}
+
+.running {
+    background-color: #82a1ff;
 }
 
 .logo {
@@ -86,10 +89,10 @@ h1 .title {
 
 /* Bootstrap overrides */
 .progress-bar {
-    background-color: #82a1ff;
+    background-color: #ccd8ff;
 }
 
 .progress-bar-info {
-    background-color: #ccd8ff;
+    background-color: #82a1ff;
 }
 
