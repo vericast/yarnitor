@@ -341,8 +341,8 @@ class YARNModel(object, metaclass=Singleton):
         while True:
             try:
                 self.run_update()
-            except Exception as ex:
-                logger.exception()
+            except Exception:
+                logger.exception('Unknown exception while updating')
             time.sleep(self.sleep_time)
 
     def close(self):
