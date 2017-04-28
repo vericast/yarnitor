@@ -23,10 +23,12 @@ from flask import json
 
 from yarnitor.common_config import YARN_STATUS_KEY
 
-host, port = os.getenv('REDIS_ENDPOINT', "localhost:6379").split(":")
-redis_client = redis.StrictRedis(host=host, port=port)
-
 logger = logging.getLogger("yarn-background-worker")
+
+# Number of workers in the threadpool
+THREADPOOL_SIZE = 16
+# Timeout for fetching results using the threadpool
+THREADPOOL_TIMEOUT = 120
 
 
 class Progress(object):
@@ -231,7 +233,7 @@ class MapredHandler(BaseHandler):
         return r
 
 
-threadpool = concurrent.futures.ThreadPoolExecutor(16)
+threadpool = concurrent.futures.ThreadPoolExecutor(THREADPOOL_SIZE)
 atexit.register(lambda: threadpool.shutdown(False))
 
 
@@ -247,9 +249,11 @@ class Singleton(type):
 
 
 class YARNModel(object, metaclass=Singleton):
-    """TODO: replace me"""
+    """Model for information about a YARN cluster for the YARNitor web UI.
+    """
 
-    def __init__(self):
+    def __init__(self, redis_client):
+        self.redis_client = redis_client
         self.yarn_handler = YarnApi(os.environ["YARN_ENDPOINT"])
         self.sleep_time = int(os.environ["YARN_POLL_SLEEP"])
         self.application_handlers = {}
@@ -257,8 +261,6 @@ class YARNModel(object, metaclass=Singleton):
         self.register_handler("MAPREDUCE", MapredHandler)
         self.register_handler("MAPRED", MapredHandler)
         self.state = {"current": {}, "cluster-metrics": {}}
-        self.terminated = False
-        self.background_thread = None
 
     def register_handler(self, application_type, handler_class):
         """
@@ -335,7 +337,7 @@ class YARNModel(object, metaclass=Singleton):
         logger.debug("generating listing")
         self.state["current"] = self._generate_listing()
         self.state["cluster-metrics"] = self.yarn_handler.cluster_metrics()
-        redis_client.set(YARN_STATUS_KEY, json.dumps(self.state))
+        self.redis_client.set(YARN_STATUS_KEY, json.dumps(self.state))
 
     def loop(self):
         while True:
@@ -345,12 +347,12 @@ class YARNModel(object, metaclass=Singleton):
                 logger.exception('Unknown exception while updating')
             time.sleep(self.sleep_time)
 
-    def close(self):
-        self.terminated = True
-
 
 def main():
-    ym = YARNModel()
+    host, port = os.getenv('REDIS_ENDPOINT', "localhost:6379").split(":")
+    redis_client = redis.StrictRedis(host=host, port=port)
+
+    ym = YARNModel(redis_client)
     ym.loop()
 
 
