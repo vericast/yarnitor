@@ -307,6 +307,9 @@ class YARNModel(object, metaclass=Singleton):
             return {}
         apps = cluster_apps['apps']['app']
 
+        # Number of apps with unknown state
+        unknown_state = 0
+
         def run_task(app):
             std_info = None
             try:
@@ -326,8 +329,19 @@ class YARNModel(object, metaclass=Singleton):
 
             return std_info
 
-        aresult = threadpool.map(run_task, apps)
-        result = {info["id"]: info for info in list(aresult)}
+        # Wait for all async results, raise if it takes too long
+        async_result = threadpool.map(run_task, apps, timeout=THREADPOOL_TIMEOUT)
+        # Materialize results as a list, we need them all anyway
+        results = list(async_result)
+
+        # If all of the applications are non-responsive, then it's quite possible
+        # the YARN proxy is down and the true state of everything should be unknown
+        if unknown_state == len(results):
+            for result in results:
+                result['state'] = 'UNKNOWN'
+
+        # Key all results by the app id
+        result = {info["id"]: info for info in results}
         logger.debug("Update {}: Result: {}...".format(self, str(result)[:80]))
 
         return result
