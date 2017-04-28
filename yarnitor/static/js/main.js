@@ -2,7 +2,7 @@ $(document).ready(function() {
     'use strict';
 
     var MAX_NAME_LENGTH = 50;
-    var WINDOW_HEIGHT = 165;
+    var BANNER_HEIGHT = 160;
 
     // Prep templates located in the HTML
     var name_tmpl = $('#name_tmpl').html();
@@ -18,8 +18,7 @@ $(document).ready(function() {
 
     // Handle vertical resizing of the table
     function calcHeight() {
-        // TODO: oh god, remove the hardcode!
-        return $(window).height() - WINDOW_HEIGHT;
+        return $(window).height() - BANNER_HEIGHT;
     }
 
     $(window).on('resize', function() {
@@ -29,37 +28,34 @@ $(document).ready(function() {
 
     // Cluster status table.
     var cluster_table = $("#yarn_status").DataTable({
-       ajax: YARNITOR_BASE_URL+"/api/cluster",
-       paging: false,
-       searching: false,
-       ordering: false,
-       dom: 't',
-       columns: [
-           {data: "activeNodes", title: "Active Nodes"},
-           {data: "unhealthyNodes", title: "Unhealthy Nodes"},
-           {
+        ajax: YARNITOR_BASE_URL+"/api/cluster",
+        paging: false,
+        searching: false,
+        ordering: false,
+        dom: 't',
+        columns: [
+            {
+                data: "activeNodes",
+                title: "Nodes",
+                render: function(data, type, row) {
+                    return (data - row['unhealthyNodes']) + ' / ' + data;
+                }
+            },
+            {
                 data: "totalVirtualCores",
-                title: "Total VCPU"
-           },
-           {
-                data: "availableVirtualCores",
-                title: "Avail VCPU"
-           },
-           {
+                title: "VCPUs",
+                render: function(data, type, row) {
+                    return row['availableVirtualCores'] + ' / ' + data;
+                }
+            },
+            {
                data: "totalMB",
-               title: "Total Mem (GB)",
-               render: function(data) {
-                    return Math.round(data / 1024);
+               title: "RAM (GB)",
+               render: function(data, type, row) {
+                    return Math.round(row['availableMB'] / 1024) + ' / ' + Math.round(data / 1024);
                }
-           },
-           {
-               data: "availableMB",
-               title: "Avail Mem (GB)",
-               render: function(data) {
-                    return Math.round(data / 1024);
-               }
-           },
-       ]
+            }
+        ]
     });
 
     // Main applications table
@@ -70,9 +66,13 @@ $(document).ready(function() {
         scrollY: calcHeight(),
         paging: false,
         order: [4, 'desc'],
-        dom: ("<'row'<'col-xs-6'l><'col-xs-6'f>>" +
-             "<'row'<'col-sm-12'tr>>" +
-             "<'row'<'col-sm-5'i><'col-sm-7 dataTables_refreshed'>>"),
+        language: {
+            "search": "",
+            "searchPlaceholder": "Filter records"
+        },
+        dom: ("<'row'<'col-xs-8'l><'col-xs-4'f>>" +
+             "<'row'<'col-xs-12'tr>>" +
+             "<'row'<'col-xs-6'i><'col-xs-6 dataTables_refreshed'>>"),
         columns: [
             {
                 data: "name",
