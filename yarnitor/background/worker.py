@@ -50,7 +50,7 @@ class YarnApi(object):
         self.version = version
 
     def get_url(self, url, **params):
-        final_url = "http://{host}/ws/{version}".format(**self.__dict__) + url
+        final_url = "{host}/ws/{version}".format(**self.__dict__) + url
         resp = requests.get(final_url, params)
         return resp.json()
 
@@ -341,8 +341,8 @@ class YARNModel(object, metaclass=Singleton):
         while True:
             try:
                 self.run_update()
-            except Exception as ex:
-                logger.exception()
+            except Exception:
+                logger.exception('Unknown exception while updating')
             time.sleep(self.sleep_time)
 
     def close(self):

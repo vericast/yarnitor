@@ -7,6 +7,8 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
+      # EXPOSED_PORT is the public port on which yarnitor listens
+      # You must set it when you run docker compose.
       - "$EXPOSED_PORT:8080"
     depends_on:
       - redis
@@ -16,6 +18,10 @@ services:
     command: gunicorn -b 0.0.0.0:8080 --access-logfile - -w 5 yarnitor:app
     environment:
       REDIS_ENDPOINT: "redis:6379"
+      # This is the url to your yarn nodemanager.
+      # You must set it when you run docker compose.
+      # eg: http://yarn-application-master.mydomain:8088/
+      YARN_ENDPOINT:
       YARN_POLL_SLEEP: 15
     restart: always
 

@@ -1,7 +1,7 @@
 .PHONY: help
 
 # required by the docker-compose.yml
-export EXPOSED_PORT:=8081
+export EXPOSED_PORT?=8081
 
 help:
 # http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html

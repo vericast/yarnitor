@@ -1,4 +1,4 @@
-FROM continuumio/miniconda:4.1.11
+FROM continuumio/miniconda3:4.3.11
 
 # make shell directories so that other commands work
 RUN mkdir -p /usr/src/app/yarnitor/static
