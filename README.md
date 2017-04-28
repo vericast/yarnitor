@@ -27,7 +27,7 @@ You must set two environment variables before starting yarnitor.
 For example:
 
 ```bash
-export YARN_ENDPOINT=yarn-application-master.mydomain.tld:8088
+export YARN_ENDPOINT=http://yarn-application-master.mydomain.tld:8088
 export EXPOSED_PORT=8080
 ```
 
