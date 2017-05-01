@@ -29,6 +29,8 @@ logger = logging.getLogger("yarn-background-worker")
 THREADPOOL_SIZE = 16
 # Timeout for fetching results using the threadpool
 THREADPOOL_TIMEOUT = 120
+# Sentinel state used when we fail to query the application for its state
+NON_RESPONSIVE_STATE = 'NON_RESPONSIVE'
 
 
 class Progress(object):
@@ -307,8 +309,6 @@ class YARNModel(object, metaclass=Singleton):
             return {}
         apps = cluster_apps['apps']['app']
 
-        # Number of apps with unknown state
-        unknown_state = 0
 
         def run_task(app):
             std_info = None
@@ -325,7 +325,7 @@ class YARNModel(object, metaclass=Singleton):
             if std_info is None:
                 ah = BaseHandler.from_yarn_application_info(app)
                 std_info = ah.generate_standardized_info(app)
-                std_info["state"] = "UNKNOWN"
+                std_info["state"] = NON_RESPONSIVE_STATE
 
             return std_info
 
@@ -333,10 +333,14 @@ class YARNModel(object, metaclass=Singleton):
         async_result = threadpool.map(run_task, apps, timeout=THREADPOOL_TIMEOUT)
         # Materialize results as a list, we need them all anyway
         results = list(async_result)
+        # Count number of apps with unknown state
+        num_unknown_state = sum(1 if info['state'] == NON_RESPONSIVE_STATE else 0
+                                for info in results)
 
         # If all of the applications are non-responsive, then it's quite possible
-        # the YARN proxy is down and the true state of everything should be unknown
-        if unknown_state == len(results):
+        # the YARN proxy is down and the true state of everything should be unknown,
+        # not unresponsive which suggests an app problem
+        if num_unknown_state == len(results):
             for result in results:
                 result['state'] = 'UNKNOWN'
 
