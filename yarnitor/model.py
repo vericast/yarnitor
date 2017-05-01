@@ -17,16 +17,24 @@ class Singleton(type):
 
 
 class YARNModel(object, metaclass=Singleton):
-    """Model class that exposes various yarn metrics.
-
-    Backed by redis.
+    """Model class that exposes YARN metrics stored in redis
+    by a separate worker process.
     """
-
     @property
     @cache.cached(timeout=2, key_prefix="yarnmodel.state")
     def state(self):
         state = redis_store.get(YARN_STATUS_KEY)
         return json.loads(state) if state is not None else {}
+
+    def refresh_datetime(self):
+        """Get the UTC datetime of the last data fetch.
+
+        Returns
+        =======
+        str
+            ISO-8601 datetime string
+        """
+        return self.state.get("refresh-datetime", '')
 
     def applications(self):
         return self.state.get("current", {})

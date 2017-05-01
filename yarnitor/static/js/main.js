@@ -118,7 +118,6 @@ $(document).ready(function() {
                 }
             },
             {data: "allocatedVCores", title: "VCPUs"},
-            // TODO: human readable
             {
                 data: "allocatedMB",
                 title: "Memory (GB)",
@@ -159,19 +158,34 @@ $(document).ready(function() {
         console.log('yarnitor:xhr.dt');
         // destroy the popovers before the draw phase kicks in.
         $('[data-toggle="popover"]').popover("destroy");
-        var now = (new Date()).toLocaleString();
-        $('.dataTables_refreshed').text('Refreshed ' + now);
         pageScrollPos = $('div.dataTables_scrollBody').scrollTop();
     });
 
+    var reload_datetime = function() {
+        $.get({
+            url: YARNITOR_BASE_URL+"/api/status",
+            dataType: 'json'
+        }).done(function(data) {
+            // Show datetime data was last refreshed from the YARN API
+            // if that information is available, else leave the display alone
+            if(data.refresh_datetime) {
+                var d = (new Date(data.refresh_datetime)).toLocaleString();
+                $('.dataTables_refreshed').text('Showing data from ' + d);
+            }
+        });
+    }
+
     setInterval(function() {
+        console.log('yarnitor:refresh');
         table.ajax.reload();
         cluster_table.ajax.reload();
-        console.log('yarnitor:refresh');
+        reload_datetime();
     }, YARNITOR_REFRESH_INTERVAL_S * 1000);
 
     // Throw exceptions in the console, not in alert dialogs
     $.fn.dataTable.ext.errMode = 'throw';
+    // Immediately try to fetch datetime of last data refresh
+    reload_datetime();
 
     console.log('yarnitor:dom-ready');
 });
