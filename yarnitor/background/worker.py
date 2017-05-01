@@ -23,10 +23,14 @@ from flask import json
 
 from yarnitor.common_config import YARN_STATUS_KEY
 
-host, port = os.getenv('REDIS_ENDPOINT', "localhost:6379").split(":")
-redis_client = redis.StrictRedis(host=host, port=port)
-
 logger = logging.getLogger("yarn-background-worker")
+
+# Number of workers in the threadpool
+THREADPOOL_SIZE = 16
+# Timeout for fetching results using the threadpool
+THREADPOOL_TIMEOUT = 120
+# Sentinel state used when we fail to query the application for its state
+NON_RESPONSIVE_STATE = 'NON_RESPONSIVE'
 
 
 class Progress(object):
@@ -231,7 +235,7 @@ class MapredHandler(BaseHandler):
         return r
 
 
-threadpool = concurrent.futures.ThreadPoolExecutor(16)
+threadpool = concurrent.futures.ThreadPoolExecutor(THREADPOOL_SIZE)
 atexit.register(lambda: threadpool.shutdown(False))
 
 
@@ -247,9 +251,11 @@ class Singleton(type):
 
 
 class YARNModel(object, metaclass=Singleton):
-    """TODO: replace me"""
+    """Model for information about a YARN cluster for the YARNitor web UI.
+    """
 
-    def __init__(self):
+    def __init__(self, redis_client):
+        self.redis_client = redis_client
         self.yarn_handler = YarnApi(os.environ["YARN_ENDPOINT"])
         self.sleep_time = int(os.environ["YARN_POLL_SLEEP"])
         self.application_handlers = {}
@@ -257,8 +263,6 @@ class YARNModel(object, metaclass=Singleton):
         self.register_handler("MAPREDUCE", MapredHandler)
         self.register_handler("MAPRED", MapredHandler)
         self.state = {"current": {}, "cluster-metrics": {}}
-        self.terminated = False
-        self.background_thread = None
 
     def register_handler(self, application_type, handler_class):
         """
@@ -305,6 +309,7 @@ class YARNModel(object, metaclass=Singleton):
             return {}
         apps = cluster_apps['apps']['app']
 
+
         def run_task(app):
             std_info = None
             try:
@@ -320,12 +325,27 @@ class YARNModel(object, metaclass=Singleton):
             if std_info is None:
                 ah = BaseHandler.from_yarn_application_info(app)
                 std_info = ah.generate_standardized_info(app)
-                std_info["state"] = "NON_RESPONSIVE"
+                std_info["state"] = NON_RESPONSIVE_STATE
 
             return std_info
 
-        aresult = threadpool.map(run_task, apps)
-        result = {info["id"]: info for info in list(aresult)}
+        # Wait for all async results, raise if it takes too long
+        async_result = threadpool.map(run_task, apps, timeout=THREADPOOL_TIMEOUT)
+        # Materialize results as a list, we need them all anyway
+        results = list(async_result)
+        # Count number of apps with unknown state
+        num_unknown_state = sum(1 if info['state'] == NON_RESPONSIVE_STATE else 0
+                                for info in results)
+
+        # If all of the applications are non-responsive, then it's quite possible
+        # the YARN proxy is down and the true state of everything should be unknown,
+        # not unresponsive which suggests an app problem
+        if num_unknown_state == len(results):
+            for result in results:
+                result['state'] = 'UNKNOWN'
+
+        # Key all results by the app id
+        result = {info["id"]: info for info in results}
         logger.debug("Update {}: Result: {}...".format(self, str(result)[:80]))
 
         return result
@@ -335,7 +355,7 @@ class YARNModel(object, metaclass=Singleton):
         logger.debug("generating listing")
         self.state["current"] = self._generate_listing()
         self.state["cluster-metrics"] = self.yarn_handler.cluster_metrics()
-        redis_client.set(YARN_STATUS_KEY, json.dumps(self.state))
+        self.redis_client.set(YARN_STATUS_KEY, json.dumps(self.state))
 
     def loop(self):
         while True:
@@ -345,12 +365,12 @@ class YARNModel(object, metaclass=Singleton):
                 logger.exception('Unknown exception while updating')
             time.sleep(self.sleep_time)
 
-    def close(self):
-        self.terminated = True
-
 
 def main():
-    ym = YARNModel()
+    host, port = os.getenv('REDIS_ENDPOINT', "localhost:6379").split(":")
+    redis_client = redis.StrictRedis(host=host, port=port)
+
+    ym = YARNModel(redis_client)
     ym.loop()
 
 
