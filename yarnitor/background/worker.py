@@ -13,6 +13,7 @@ REDIS_ENDPOINT :
 
 import atexit
 import concurrent.futures
+import datetime
 import logging
 import os
 import time
@@ -355,6 +356,11 @@ class YARNModel(object, metaclass=Singleton):
         logger.debug("generating listing")
         self.state["current"] = self._generate_listing()
         self.state["cluster-metrics"] = self.yarn_handler.cluster_metrics()
+        # Make the datetime conform to true ISO-8601 by adding Z(ulu) to indicate
+        # this is truly a UTC time (without a timezone, the spec says it should be
+        # treated as local time which is definitely NOT what we want)
+        # https://en.wikipedia.org/wiki/ISO_8601#Time_zone_designators
+        self.state["refresh-datetime"] = datetime.datetime.utcnow().isoformat() + 'Z'
         self.redis_client.set(YARN_STATUS_KEY, json.dumps(self.state))
 
     def loop(self):

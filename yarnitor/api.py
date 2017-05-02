@@ -19,7 +19,11 @@ def get_model():
 
 @api_bp.route('/api/status')
 def status():
-    return jsonify({'status': 'ok'})
+    ym = get_model()
+    return jsonify({
+        'status': 'ok',
+        'refresh_datetime': ym.refresh_datetime()
+    })
 
 
 @api_bp.route('/api/applications')
