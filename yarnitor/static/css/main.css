@@ -93,6 +93,9 @@ h1 .title {
 }
 
 .progress-bar-info {
-    background-color: #82a1ff;
+    background-color: #82a1ff !important;
 }
 
+.progress-bar-danger {
+    background-color: #d9534f !important;
+}
