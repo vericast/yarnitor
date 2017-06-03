@@ -36,21 +36,21 @@ $(document).ready(function() {
         columns: [
             {
                 data: "totalNodes",
-                title: "<a href='"+YARN_BASE_URL+"/cluster/nodes'>Nodes</a>",
+                title: "<a title='Healthy / Total Nodes' href='"+YARN_BASE_URL+"/cluster/nodes'>Nodes</a>",
                 render: function(data, type, row) {
                     return (data - row['unhealthyNodes']) + ' / ' + data;
                 }
             },
             {
                 data: "totalVirtualCores",
-                title: "<a href='"+YARN_BASE_URL+"/cluster/apps'>VCPUs</a>",
+                title: "<a title='Available / Total VCPUs' href='"+YARN_BASE_URL+"/cluster/apps'>VCPUs</a>",
                 render: function(data, type, row) {
                     return row['availableVirtualCores'] + ' / ' + data;
                 }
             },
             {
                data: "totalMB",
-               title: "<a href='"+YARN_BASE_URL+"/cluster/scheduler'>RAM (GB)</a>",
+               title: "<a title='Available / Total RAM in GB' href='"+YARN_BASE_URL+"/cluster/scheduler'>RAM (GB)</a>",
                render: function(data, type, row) {
                     return Math.round(row['availableMB'] / 1024) + ' / ' + Math.round(data / 1024);
                }
