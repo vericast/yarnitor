@@ -161,7 +161,7 @@ $(document).ready(function() {
         pageScrollPos = $('div.dataTables_scrollBody').scrollTop();
     });
 
-    var reload_datetime = function() {
+    var reloadDatetime = function() {
         $.get({
             url: YARNITOR_BASE_URL+"/api/status",
             dataType: 'json'
@@ -179,13 +179,13 @@ $(document).ready(function() {
         console.log('yarnitor:refresh');
         table.ajax.reload();
         cluster_table.ajax.reload();
-        reload_datetime();
+        reloadDatetime();
     }, YARNITOR_REFRESH_INTERVAL_S * 1000);
 
     // Throw exceptions in the console, not in alert dialogs
     $.fn.dataTable.ext.errMode = 'throw';
     // Immediately try to fetch datetime of last data refresh
-    reload_datetime();
+    reloadDatetime();
 
     console.log('yarnitor:dom-ready');
 });
