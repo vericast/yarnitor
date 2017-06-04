@@ -35,22 +35,22 @@ $(document).ready(function() {
         dom: 't',
         columns: [
             {
-                data: "activeNodes",
-                title: "<a href='"+YARN_BASE_URL+"/cluster/nodes'>Nodes</a>",
+                data: "totalNodes",
+                title: "<a title='Healthy / Total Nodes' href='"+YARN_BASE_URL+"/cluster/nodes'>Nodes</a>",
                 render: function(data, type, row) {
                     return (data - row['unhealthyNodes']) + ' / ' + data;
                 }
             },
             {
                 data: "totalVirtualCores",
-                title: "<a href='"+YARN_BASE_URL+"/cluster/apps'>VCPUs</a>",
+                title: "<a title='Available / Total VCPUs' href='"+YARN_BASE_URL+"/cluster/apps'>VCPUs</a>",
                 render: function(data, type, row) {
                     return row['availableVirtualCores'] + ' / ' + data;
                 }
             },
             {
                data: "totalMB",
-               title: "<a href='"+YARN_BASE_URL+"/cluster/scheduler'>RAM (GB)</a>",
+               title: "<a title='Available / Total RAM in GB' href='"+YARN_BASE_URL+"/cluster/scheduler'>RAM (GB)</a>",
                render: function(data, type, row) {
                     return Math.round(row['availableMB'] / 1024) + ' / ' + Math.round(data / 1024);
                }
@@ -161,7 +161,7 @@ $(document).ready(function() {
         pageScrollPos = $('div.dataTables_scrollBody').scrollTop();
     });
 
-    var reload_datetime = function() {
+    var reloadDatetime = function() {
         $.get({
             url: YARNITOR_BASE_URL+"/api/status",
             dataType: 'json'
@@ -179,13 +179,13 @@ $(document).ready(function() {
         console.log('yarnitor:refresh');
         table.ajax.reload();
         cluster_table.ajax.reload();
-        reload_datetime();
+        reloadDatetime();
     }, YARNITOR_REFRESH_INTERVAL_S * 1000);
 
     // Throw exceptions in the console, not in alert dialogs
     $.fn.dataTable.ext.errMode = 'throw';
     // Immediately try to fetch datetime of last data refresh
-    reload_datetime();
+    reloadDatetime();
 
     console.log('yarnitor:dom-ready');
 });
