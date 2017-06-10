@@ -135,6 +135,7 @@ $(document).ready(function() {
             {"data": "queue", "title": "Queue"},
             {
                 "data": "startedTime",
+                "type": "date",
                 "title": "Local Start Time",
                 "render": function(data, type, row, meta) {
                     return (new Date(data)).toLocaleString();
