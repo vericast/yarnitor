@@ -141,6 +141,7 @@ $(document).ready(function() {
                     return (new Date(data)).toLocaleString();
                 }
             },
+            {"data": "id", "title": "Application ID", "visible": false},
         ]
     });
 
