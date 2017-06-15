@@ -36,9 +36,9 @@ $(document).ready(function() {
         columns: [
             {
                 data: "totalNodes",
-                title: "<a title='Healthy / Total Nodes' href='"+YARN_BASE_URL+"/cluster/nodes'>Nodes</a>",
+                title: "<a title='Active / Total Nodes' href='"+YARN_BASE_URL+"/cluster/nodes'>Nodes</a>",
                 render: function(data, type, row) {
-                    return (data - row['unhealthyNodes']) + ' / ' + data;
+                    return (row['activeNodes']) + ' / ' + data;
                 }
             },
             {
