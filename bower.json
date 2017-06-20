@@ -20,6 +20,7 @@
     "datatables.net": "^1.10.12",
     "mustache.js": "mustache#^2.2.1",
     "bootstrap": "^3.3.7",
-    "datatables.net-bs": "^1.10.12"
+    "datatables.net-bs": "^1.10.12",
+    "moment": "^2.18.1"
   }
 }
