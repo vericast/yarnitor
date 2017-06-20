@@ -141,6 +141,14 @@ $(document).ready(function() {
                     return (new Date(data)).toLocaleString();
                 }
             },
+            {
+                "data": "startedTime",
+                "sortable": false,
+                "title": "Uptime",
+                "render": function(data, type, row, meta) {
+                    return moment.duration(moment.utc() - moment(data)).humanize();
+                }
+            },
             {"data": "id", "title": "Application ID", "visible": false},
         ]
     });
