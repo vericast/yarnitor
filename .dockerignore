@@ -1,3 +1,6 @@
+.cache/
+.git/
+.hypothesis/
 Dockerfile
 Makefile
 docker-compose.yml
