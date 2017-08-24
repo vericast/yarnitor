@@ -30,6 +30,7 @@ prod: build ## Make all docker containers start pointing at YARN_ENDPOINT
 
 test: ## Make a pytest run
 	docker-compose -f docker-compose.test.yml up -d --build
+# wait for the services to fully materialize and populate data
 	sleep 5
 	docker-compose -f docker-compose.test.yml run --rm test pytest; \
 		TEST_STATUS=$$?; \

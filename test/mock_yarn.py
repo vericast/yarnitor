@@ -60,7 +60,7 @@ def applications():
 
     result = json.dumps({
         'apps': {
-            'app': st.lists(d, min_size=1, average_size=5).example()
+            'app': st.lists(d, min_size=4, average_size=10).example()
         }
     })
     redis.set(request.base_url, result)
