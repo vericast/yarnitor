@@ -1,13 +1,15 @@
 """
-Background processing script for polling yarn and getting things from it.
+Fetches information about YARN applications from the YARN HTTP API.
 
-Environment Variables
-=====================
+Uses that base information to fetch additional details if the application
+is a Spark application or MapReduce application. Requires the following
+environment variables to configure itself.
+
 YARN_ENDPOINT
     host:port for yarn api
 YARN_POLL_SLEEP
     time to sleep between polling in seconds
-REDIS_ENDPOINT :
+REDIS_ENDPOINT
     host:port for a redis instance
 """
 
@@ -61,9 +63,6 @@ class YarnApi(object):
 
     def cluster_applications(self, state):
         return self.get_url("/cluster/apps", state=state)
-
-    def cluster_application(self, application_id):
-        return self.get_url("/cluster/apps/{}".format(application_id))
 
     def cluster_metrics(self):
         return self.get_url("/cluster/metrics")
