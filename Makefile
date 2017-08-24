@@ -28,11 +28,13 @@ mock: ## Make all docker containers start pointing at a mock YARN service
 prod: build ## Make all docker containers start pointing at YARN_ENDPOINT
 	docker-compose up
 
-test: ## Make a pytest run
-	docker-compose -f docker-compose.test.yml up -d --build
+test: test-build ## Make a pytest run
 # wait for the services to fully materialize and populate data
 	sleep 5
 	docker-compose -f docker-compose.test.yml run --rm test pytest; \
 		TEST_STATUS=$$?; \
 		docker-compose -f docker-compose.test.yml down; \
 		exit "$$TEST_STATUS"
+
+test-build: ## Make all docker images for a pytest run
+	docker-compose -f docker-compose.test.yml up -d --build

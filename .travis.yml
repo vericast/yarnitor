@@ -1,0 +1,14 @@
+sudo: required
+
+language: python
+
+services:
+  - docker
+
+before_script:
+  - docker --version
+  - docker-compose --version
+  - make test-build
+
+script:
+  - make test
