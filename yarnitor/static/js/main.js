@@ -65,6 +65,7 @@ $(document).ready(function() {
         scrollX: true,
         scrollY: calcHeight(),
         paging: false,
+        colReorder: true,
         stateSave: true,
         order: [4, 'desc'],
         buttons: [
