@@ -1,11 +1,8 @@
-FROM continuumio/miniconda3:4.3.11
+FROM continuumio/miniconda3:latest
 
 # make shell directories so that other commands work
 RUN mkdir -p /usr/src/app/yarnitor/static
 WORKDIR /usr/src/app
-
-# create a conda environment including pytest
-RUN conda update --all python=3.5 pytest -c conda-forge
 
 # copy in the backend requirements so that we benefit from caching
 COPY requirements.txt /usr/src/app

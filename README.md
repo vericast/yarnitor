@@ -7,11 +7,11 @@ Yarnitor is a pluggable YARN monitoring API and web frontend.
 ## Requirements
 
 Yarnitor relies on multiple processes, and is therefore best run using the
-provided Docker configuration. You install Docker on
+provided Docker configuration. You can install Docker on
 [Windows](https://docs.docker.com/docker-for-windows/),
 [OSX](https://docs.docker.com/docker-for-mac/), or
 [Linux](https://docs.docker.com/engine/installation/linux/). You will also need
-install [docker-compose](https://docs.docker.com/compose/install/). You'll
+to install [docker-compose](https://docs.docker.com/compose/install/). You'll
 specifically need:
 
 * docker>=1.10
@@ -42,8 +42,8 @@ docker-compose up
 
 ## Develop
 
-To run the yarnitor web app with debugging enabled, the background YARN polling
-process, and Redis in linked Docker containers for development, run the following:
+To run the yarnitor web app with Flask debugging enabled, the YARN collector
+process, and Redis in linked Docker containers, execute the following:
 
 ```bash
 make dev
@@ -72,8 +72,9 @@ make test
 Or the long-hand equivalent:
 
 ```bash
-docker-compose build
-docker-compose run --rm web pytest
+docker-compose -f docker-compose.test.yml up -d --build
+sleep 5 # to get services time to populate data
+docker-compose -f docker-compose.test.yml run --rm test pytest
 ```
 
 ## Credits

@@ -10,7 +10,8 @@ setup_args = dict(
         ]
     },
     cmdclass=versioneer.get_cmdclass(),
-    license='MaxPoint Internal',
+    author='MaxPoint Interactive',
+    license='BSD 3-clause',
     packages=find_packages(),
     include_package_data=True,
     install_requires=[

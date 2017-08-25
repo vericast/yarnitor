@@ -1,0 +1,18 @@
+FROM continuumio/miniconda3:latest
+
+# make shell directories so that other commands work
+RUN mkdir -p /usr/src/app
+WORKDIR /usr/src/app
+
+# install runtime and test requirements
+COPY requirements*.txt /usr/src/app/
+RUN pip install -r requirements.txt -r requirements-test.txt
+
+# never run as the default root user
+RUN useradd -ms /bin/bash yarnitor
+
+# add all source last to get the most caching
+COPY . /usr/src/app
+RUN chown yarnitor /usr/src/app
+
+USER yarnitor
