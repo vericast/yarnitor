@@ -129,6 +129,13 @@ $(document).ready(function() {
             },
             {data: "allocatedVCores", title: "VCPUs"},
             {
+                data: "vcoreSeconds",
+                title: "VCPU-Hours",
+                render: function(data, type, row, meta) {
+                    return (row.vcoreSeconds / 3600).toFixed(2);
+                }
+            },
+            {
                 data: "allocatedMB",
                 title: "RAM (GB)",
                 render: function(data) {
@@ -136,8 +143,15 @@ $(document).ready(function() {
                 }
             },
             {
-              "title": "Mem/VCPU Ratio",
-              "render": function(data, type, row, meta) {
+                data: "memorySeconds",
+                title: "RAM (GB)-Hours",
+                render: function(data, type, row, meta) {
+                    return (row.memorySeconds / 1024 / 3600).toFixed(2);
+                }
+            },
+            {
+              title: "RAM/VCPU Ratio",
+              render: function(data, type, row, meta) {
                 return (row.allocatedMB / row.allocatedVCores / 1024).toFixed(2);
               }
             },
