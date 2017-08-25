@@ -65,12 +65,23 @@ $(document).ready(function() {
         scrollX: true,
         scrollY: calcHeight(),
         paging: false,
+        colReorder: true,
+        stateSave: true,
         order: [4, 'desc'],
+        buttons: [
+            {
+                extend: 'colvis',
+                className: 'btn-sm'
+            }
+        ],
         language: {
             "search": "",
-            "searchPlaceholder": "Filter records"
+            "searchPlaceholder": "Filter records",
+            "buttons": {
+                "colvis": '<i class="glyphicon glyphicon-th-list"></i>'
+            }
         },
-        dom: ("<'row'<'col-xs-8'l><'col-xs-4'f>>" +
+        dom: ("<'row'<'col-xs-8'l><'col-xs-4 dataTables_controls'Bf>>" +
              "<'row'<'col-xs-12'tr>>" +
              "<'row'<'col-xs-6'i><'col-xs-6 dataTables_refreshed'>>"),
         columns: [
@@ -119,15 +130,29 @@ $(document).ready(function() {
             },
             {data: "allocatedVCores", title: "VCPUs"},
             {
+                data: "vcoreSeconds",
+                title: "VCPU-Hours",
+                render: function(data, type, row, meta) {
+                    return (row.vcoreSeconds / 3600).toFixed(2);
+                }
+            },
+            {
                 data: "allocatedMB",
-                title: "Memory (GB)",
+                title: "RAM (GB)",
                 render: function(data) {
                     return Math.round(data / 1024);
                 }
             },
             {
-              "title": "Mem/VCPU Ratio",
-              "render": function(data, type, row, meta) {
+                data: "memorySeconds",
+                title: "RAM (GB)-Hours",
+                render: function(data, type, row, meta) {
+                    return (row.memorySeconds / 1024 / 3600).toFixed(2);
+                }
+            },
+            {
+              title: "RAM/VCPU Ratio",
+              render: function(data, type, row, meta) {
                 return (row.allocatedMB / row.allocatedVCores / 1024).toFixed(2);
               }
             },
@@ -154,6 +179,10 @@ $(document).ready(function() {
     });
 
     var pageScrollPos = 0;
+
+    table.on('search.dt', function() {
+        history.replaceState(undefined, undefined, '#'+table.search());
+    });
 
     table.on('draw.dt', function() {
         console.log('yarnitor:draw.dt');
@@ -196,6 +225,8 @@ $(document).ready(function() {
     $.fn.dataTable.ext.errMode = 'throw';
     // Immediately try to fetch datetime of last data refresh
     reloadDatetime();
+    // Set the initial filter text by pulling it from the URL hash
+    table.search(window.location.hash.substr(1));
 
     console.log('yarnitor:dom-ready');
 });
