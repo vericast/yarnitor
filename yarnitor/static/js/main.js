@@ -67,7 +67,7 @@ $(document).ready(function() {
         paging: false,
         colReorder: true,
         stateSave: true,
-        order: [4, 'desc'],
+        order: [[4, 'desc']],
         buttons: [
             {
                 extend: 'colvis',
