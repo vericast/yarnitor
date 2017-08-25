@@ -179,6 +179,10 @@ $(document).ready(function() {
 
     var pageScrollPos = 0;
 
+    table.on('search.dt', function() {
+        history.replaceState(undefined, undefined, '#'+table.search());
+    });
+
     table.on('draw.dt', function() {
         console.log('yarnitor:draw.dt');
         // Remove shown popovers
@@ -220,6 +224,8 @@ $(document).ready(function() {
     $.fn.dataTable.ext.errMode = 'throw';
     // Immediately try to fetch datetime of last data refresh
     reloadDatetime();
+    // Set the initial initial filter as specified by the URL hash
+    table.search(window.location.hash.substr(1));
 
     console.log('yarnitor:dom-ready');
 });
