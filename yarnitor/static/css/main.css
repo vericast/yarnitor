@@ -31,6 +31,10 @@ html, body {
     background-color: rgba(255, 255, 255, 0.8);
 }
 
+#yarn_status thead tr th {
+    border-bottom: 0px solid white !important;
+}
+
 #yarn_applications .progress {
     height: 10px;
     margin-bottom: 2px;
@@ -51,6 +55,18 @@ html, body {
 
 .dataTables_filter {
     text-align: right !important;
+    display: inline-block;
+}
+
+.dt-buttons {
+    display: inline-block;
+    margin-bottom: unset !important;
+    width: unset !important;
+}
+
+.dataTables_controls {
+    text-align: right !important;
+    white-space: nowrap;
 }
 
 .dataTables_refreshed {

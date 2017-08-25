@@ -65,12 +65,22 @@ $(document).ready(function() {
         scrollX: true,
         scrollY: calcHeight(),
         paging: false,
+        stateSave: true,
         order: [4, 'desc'],
+        buttons: [
+            {
+                extend: 'colvis',
+                className: 'btn-sm'
+            }
+        ],
         language: {
             "search": "",
-            "searchPlaceholder": "Filter records"
+            "searchPlaceholder": "Filter records",
+            "buttons": {
+                "colvis": '<i class="glyphicon glyphicon-th-list"></i>'
+            }
         },
-        dom: ("<'row'<'col-xs-8'l><'col-xs-4'f>>" +
+        dom: ("<'row'<'col-xs-8'l><'col-xs-4 dataTables_controls'Bf>>" +
              "<'row'<'col-xs-12'tr>>" +
              "<'row'<'col-xs-6'i><'col-xs-6 dataTables_refreshed'>>"),
         columns: [
@@ -120,7 +130,7 @@ $(document).ready(function() {
             {data: "allocatedVCores", title: "VCPUs"},
             {
                 data: "allocatedMB",
-                title: "Memory (GB)",
+                title: "RAM (GB)",
                 render: function(data) {
                     return Math.round(data / 1024);
                 }
