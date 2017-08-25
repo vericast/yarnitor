@@ -225,7 +225,7 @@ $(document).ready(function() {
     $.fn.dataTable.ext.errMode = 'throw';
     // Immediately try to fetch datetime of last data refresh
     reloadDatetime();
-    // Set the initial initial filter as specified by the URL hash
+    // Set the initial filter text by pulling it from the URL hash
     table.search(window.location.hash.substr(1));
 
     console.log('yarnitor:dom-ready');
