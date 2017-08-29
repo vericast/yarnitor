@@ -11,6 +11,8 @@ YARN_POLL_SLEEP
     time to sleep between polling in seconds
 REDIS_ENDPOINT
     host:port for a redis instance
+LOG_LEVEL
+    DEBUG, INFO (default), WARNING, ERROR strings from the logging package
 """
 
 import atexit
@@ -520,6 +522,9 @@ def main():
     poller that puts information about the YARN cluster and its applications into
     redis on a timed interval.
     """
+    log_level = os.getenv('LOG_LEVEL', 'INFO')
+    logging.basicConfig(level=getattr(logging, log_level))
+
     host, port = os.environ['REDIS_ENDPOINT'].split(":")
     redis_client = redis.StrictRedis(host=host, port=port)
     yarn_handler = YARNHandler(os.environ['YARN_ENDPOINT'])
