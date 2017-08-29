@@ -38,13 +38,21 @@ THREADPOOL_SIZE = 16
 THREADPOOL_TIMEOUT = 120
 # Sentinel state used when we fail to query the application for its state
 NON_RESPONSIVE_STATE = 'NON_RESPONSIVE'
-# Maximum number of YARN high-availability (HA) redirects to follow before
-# giving up.
+# The YARN API responds with a Redirect header when the configured
+# YARN ResrouceManager host is no longer the primary. The YARNHandler class
+# knows how to interpret this redirect. Because distributed systems are fun,
+# the primary may change yet again before the YARNHandler makes the next
+# request resulting in yet another redirect. This constant represents the
+# maximum number of redirects the YARNHandler should follow in a single
+# update attempt, after which it will wait until the next update interval to
+# try again. This cap avoids the potential for endless, busy loop
+# ping-ponging among YARN ResourceManagers.
 MAX_HA_REDIRECTS = 5
 
 # Global threadpool for running async tasks
 threadpool = concurrent.futures.ThreadPoolExecutor(THREADPOOL_SIZE)
-# Shut down the pool when the process is exiting
+# Shut down the pool when the process is exiting, passing False to
+# avoid waiting in this lambda for all tasks to complete.
 atexit.register(lambda: threadpool.shutdown(False))
 
 class Progress(object):
@@ -107,16 +115,16 @@ class YARNHandler(object):
             # YARN uses the Refresh header to indicate a change in the primary RM
             ha_redirect = resp.headers.get('Refresh')
             if ha_redirect is None:
+                # The configured RM is still the primary RM: leave it be
                 break
-            else:
-                # Store the new host in the instance for the next request
-                # It comes in the form "3; url=http://newhost:port/same/path/as/request?args"
-                _, key = ha_redirect.split(';')
-                _, new_url = key.strip().split('url=')
-                parsed = urlparse(new_url.strip())
-                new_host = '{parsed.scheme}://{parsed.netloc}'.format(parsed=parsed)
-                self.base_url['host'] = new_host
-                logger.warn('YARN HA redirect, switching to URL: %s', new_host)
+            # Store the new host in the instance for the next request
+            # It comes in the form "3; url=http://newhost:port/same/path/as/request?args"
+            _, key = ha_redirect.split(';')
+            _, new_url = key.strip().split('url=')
+            parsed = urlparse(new_url.strip())
+            new_host = '{parsed.scheme}://{parsed.netloc}'.format(parsed=parsed)
+            self.base_url['host'] = new_host
+            logger.warn('YARN HA redirect, switching to URL: %s', new_host)
         return resp.json()
 
     def cluster_applications(self, *state):
@@ -124,8 +132,9 @@ class YARNHandler(object):
 
         Parameters
         ----------
-        *state: list, optional
-            Request applications with the state(s) only; empty means all apps
+        *state: str, optional
+            Request applications with the given string state(s) only.
+            Empty means apps with any state will be included in the response.
 
         Returns
         -------
@@ -153,12 +162,9 @@ class BaseHandler(object):
     ----------
     tracking_url: str
         URL of the server responsible for tracking the status of the YARN app
-    applicaiton_id: str
+    application_id: str
         Unique ID of the YARN application
     """
-    # prefix = ""
-    # version = "v1"
-
     def __init__(self, tracking_url, application_id):
         self.tracking_url = tracking_url.rstrip("/")
         self.application_id = application_id
@@ -171,7 +177,7 @@ class BaseHandler(object):
         ----------
         path: str
             Path to append to the root YARN RM path
-        **params, dict
+        **params: dict
             Query parameters to append to the YARN RM URL
 
         Returns
@@ -230,10 +236,10 @@ class SparkHandler(BaseHandler):
         return self.get_url(path, **params)
 
     def _aggregate_tasks(self, name, tasks):
-        """Aggreagates the task metrics for a job.
+        """Aggregates the task metrics for a job.
 
-        Paramters
-        ---------
+        Parameters
+        ----------
         name: str
             Name describing the tasks
         tasks: list
@@ -295,10 +301,10 @@ class MapredHandler(BaseHandler):
         return self.get_url('ws/v1/mapreduce/jobs')
 
     def _aggregate_maps(self, tasks):
-        """Aggreagates the mapper metrics for a job.
+        """Aggregates the mapper metrics for a job.
 
-        Paramters
-        ---------
+        Parameters
+        ----------
         name: str
             Name describing the mappers
         tasks: list
@@ -318,7 +324,7 @@ class MapredHandler(BaseHandler):
         return p.to_dict()
 
     def _aggregate_reduces(self, tasks):
-        """Aggreagates the reducer metrics for a job.
+        """Aggregates the reducer metrics for a job.
 
         Paramters
         ---------
