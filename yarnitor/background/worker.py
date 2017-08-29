@@ -23,6 +23,8 @@ import logging
 import os
 import time
 
+from urllib.parse import urlparse
+
 import redis
 import requests
 
@@ -36,6 +38,9 @@ THREADPOOL_SIZE = 16
 THREADPOOL_TIMEOUT = 120
 # Sentinel state used when we fail to query the application for its state
 NON_RESPONSIVE_STATE = 'NON_RESPONSIVE'
+# Maximum number of YARN high-availability (HA) redirects to follow before
+# giving up.
+MAX_HA_REDIRECTS = 5
 
 # Global threadpool for running async tasks
 threadpool = concurrent.futures.ThreadPoolExecutor(THREADPOOL_SIZE)
@@ -93,8 +98,25 @@ class YARNHandler(object):
         dict
             JSON decoded response
         """
-        final_url = "{host}/ws/{version}/{path}".format(path=path, **self.base_url)
-        resp = requests.get(final_url, params)
+        # Handle HA redirects in a loop so that we can control how many
+        # we're willing to follow and don't blow out the stack with recursion.
+        for i in range(MAX_HA_REDIRECTS):
+            final_url = "{host}/ws/{version}/{path}".format(path=path, **self.base_url)
+            resp = requests.get(final_url, params)
+            resp.raise_for_status()
+            # YARN uses the Refresh header to indicate a change in the primary RM
+            ha_redirect = resp.headers.get('Refresh')
+            if ha_redirect is None:
+                break
+            else:
+                # Store the new host in the instance for the next request
+                # It comes in the form "3; url=http://newhost:port/same/path/as/request?args"
+                _, key = ha_redirect.split(';')
+                _, new_url = key.strip().split('url=')
+                parsed = urlparse(new_url.strip())
+                new_host = '{parsed.scheme}://{parsed.netloc}'.format(parsed=parsed)
+                self.base_url['host'] = new_host
+                logger.warn('YARN HA redirect, switching to URL: %s', new_host)
         return resp.json()
 
     def cluster_applications(self, *state):
