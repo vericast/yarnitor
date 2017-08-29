@@ -16,13 +16,13 @@ REDIS_ENDPOINT
 import atexit
 import concurrent.futures
 import datetime
+import json
 import logging
 import os
 import time
 
 import redis
 import requests
-from flask import json
 
 from yarnitor.common_config import YARN_STATUS_KEY
 
@@ -35,11 +35,13 @@ THREADPOOL_TIMEOUT = 120
 # Sentinel state used when we fail to query the application for its state
 NON_RESPONSIVE_STATE = 'NON_RESPONSIVE'
 
+# Global threadpool for running async tasks
+threadpool = concurrent.futures.ThreadPoolExecutor(THREADPOOL_SIZE)
+# Shut down the pool when the process is exiting
+atexit.register(lambda: threadpool.shutdown(False))
 
 class Progress(object):
-    """Utility class for storing progress information
-    """
-
+    """Utility class for storing mutable progress information."""
     def __init__(self, name, completed=0, failed=0, running=0, total=0):
         self.name = name
         self.completed = completed
@@ -47,187 +49,291 @@ class Progress(object):
         self.running = running
         self.total = total
 
+    def to_dict(self):
+        return self.__dict__
 
-class YarnApi(object):
-    """Collection of yarn endpoints we care about.
+
+class YARNHandler(object):
+    """Manages HTTP communication with a YARN ResourceManager (RM) to fetch
+    information about applications.
+
+    Parameters
+    ----------
+    host: str
+        Protocol, hostname, and optional port of the YARN RM
+    version: str, optional
+        Version of the YARN RM API
+
+    Attributes
+    ----------
+    base_url: dict
+        'host' and 'version' of the YARN RM
     """
-
     def __init__(self, host, version="v1"):
-        self.host = host
-        self.version = version
+        self.base_url = {
+            'host': host,
+            'version': version
+        }
 
-    def get_url(self, url, **params):
-        final_url = "{host}/ws/{version}".format(**self.__dict__) + url
+    def get_url(self, path, **params):
+        """Issues an HTTP GET to the given path with the given parameters
+        and treats the response as JSON.
+
+        Parameters
+        ----------
+        path: str
+            Path to append to the root YARN RM path
+        **params, dict
+            Query parameters to append to the YARN RM URL
+
+        Returns
+        -------
+        dict
+            JSON decoded response
+        """
+        final_url = "{host}/ws/{version}/{path}".format(path=path, **self.base_url)
         resp = requests.get(final_url, params)
         return resp.json()
 
-    def cluster_applications(self, state):
-        return self.get_url("/cluster/apps", state=state)
+    def cluster_applications(self, *state):
+        """Gets information about YARN apps with the given state.
+
+        Parameters
+        ----------
+        *state: list, optional
+            Request applications with the state(s) only; empty means all apps
+
+        Returns
+        -------
+        dict
+            JSON decoded response from the YARN RM
+        """
+        return self.get_url("cluster/apps", state=','.join(state))
 
     def cluster_metrics(self):
-        return self.get_url("/cluster/metrics")
+        """Gest information about the YARN cluster.
+
+        Returns
+        -------
+        dict
+            JSON decoded response from the YARN RM
+        """
+        return self.get_url("cluster/metrics")
 
 
 class BaseHandler(object):
-    """Basic handler class providing the scaffolding that the rest of the
-    library expects.
+    """Base handler for transforming info about a YARN application
+    into the structure and detail the frontend expects.
 
+    Parameters
+    ----------
+    tracking_url: str
+        URL of the server responsible for tracking the status of the YARN app
+    applicaiton_id: str
+        Unique ID of the YARN application
     """
-    prefix = ""
-    version = "v1"
+    # prefix = ""
+    # version = "v1"
 
     def __init__(self, tracking_url, application_id):
         self.tracking_url = tracking_url.rstrip("/")
         self.application_id = application_id
 
-    @classmethod
-    def from_yarn_application_info(cls, info):
-        """Alternate constructor creating an instance from the output of a yarn
-        application listing
+    def get_url(self, path, **params):
+        """Issues an HTTP GET against the given path on the app tracking server with
+        the given parameters and treats the response as JSON.
 
         Parameters
         ----------
-        info : dict
-
-        Returns
-        -------
-        cls
-        """
-        return cls(tracking_url=info["trackingUrl"], application_id=info["id"])
-
-    def get_url(self, url, **params):
-        """Retrieves a url, params set and converts the result to a python dict
-
-        Parameters
-        ----------
-        url : string
-        params : dict
+        path: str
+            Path to append to the root YARN RM path
+        **params, dict
+            Query parameters to append to the YARN RM URL
 
         Returns
         -------
         dict
+            JSON decoded response
         """
-        final_url = (self.prefix + url).format(version=self.version, **self.__dict__)
-        # Under some security models for YARN going to the tracking url
-        # required clicking through a security prompt.
-        # This presets that cookie.
+        url = '{tracking_url}/{path}'.format(tracking_url=self.tracking_url, path=path)
+        # Under some security models, the YARN proxy requires that a user click a link in
+        # order to access the tracking URL. Setting a cookie has the same effect, programmatically.
         cookies = {"checked_{}".format(self.application_id): 'true'}
-        resp = requests.get(final_url, params, cookies=cookies, timeout=10)
+        resp = requests.get(url, params, cookies=cookies, timeout=10)
         return resp.json()
 
     def generate_standardized_info(self, yarn_application_info):
-        """Generates the standardized dictionary of fields that are expected by
-        listing applications.
+        """Transforms information from the YARN ResourceManager and the YARN ApplicationMaster
+        into a dictionary of standard fields used by the frontend.
 
         Parameters
         ----------
-        yarn_application_info
+        yarn_application_info: dict
+            Information about a single app retrieved using YARNHandler.cluster_applications()
 
         Returns
         -------
         dict
+            Fields to copy verbatim from the YARN information about the app plus an
+            empty 'progress' list to be populated by more specific subtypes
         """
         verbatim_fields = ["id", "name", "user", "applicationType", "queue",
                            "startedTime", "allocatedMB", "allocatedVCores",
                            "trackingUrl", "state", "memorySeconds",
                            "vcoreSeconds"]
-
         r = {k: yarn_application_info[k] for k in verbatim_fields}
-        # defaults
-        r["job"] = "1"
-
-        # Progress should contain various progress records formatted as
-        # follows.
-        # This is the fallback progress handler for when we do not have a
-        # handler for the specific yarn application
-        # type.
-        r["progress"] = [
-            {
-                "name": "yarn-progress",
-                "completed": int(yarn_application_info["progress"]),
-                "failed": 0,
-                "running": 0,
-                "total": 100
-            }
-        ]
-
-        r["type_specific"] = {}
+        r["progress"] = []
         return r
 
 
 class SparkHandler(BaseHandler):
-    prefix = "{tracking_url}/api/{version}"
+    """Aggregates Spark job information for the frontend."""
+    def get_jobs(self, status=None):
+        """Issues an HTTP GET to fetch information about Spark jobs.
 
-    def jobs(self, job_id=None, status=None):
-        base = "/applications/{application_id}/jobs"
-        if job_id:
-            base += "/{}".format(job_id)
-        if status:
-            params = {"status": status}
-        else:
-            params = {}
-        return self.get_url(base, **params)
+        Parameters
+        ----------
+        status: str, optional
+            Request jobs with this status only; None means all jobs
+
+        Returns
+        -------
+        dict
+            JSON-decoded response, https://spark.apache.org/docs/latest/monitoring.html#rest-api
+        """
+        path = "api/v1/applications/{application_id}/jobs"
+        params = {"status": status} if status is not None else {}
+        return self.get_url(path, **params)
 
     def _aggregate_tasks(self, name, tasks):
+        """Aggreagates the task metrics for a job.
+
+        Paramters
+        ---------
+        name: str
+            Name describing the tasks
+        tasks: list
+            List of task info dictionaries from the Spark tracking API
+
+        Returns
+        -------
+        dict
+            Progress object in dictionary form
+        """
         p = Progress(name)
         for jobinfo in tasks:
             p.completed += jobinfo["numCompletedTasks"]
             p.failed += jobinfo["numFailedTasks"]
             p.running += jobinfo["numActiveTasks"]
             p.total += jobinfo["numTasks"]
-        return p.__dict__
+        return p.to_dict()
 
     def generate_standardized_info(self, yarn_application_info):
+        """Transforms information from the YARN ResourceManager and the Spark ApplicationMaster
+        into a dictionary of standard fields used by the frontend.
+
+        Parameters
+        ----------
+        yarn_application_info: dict
+            Information about a single app retrieved using YARNHandler.cluster_applications()
+
+        Returns
+        -------
+        dict
+            Fields to copy verbatim from the YARN information about the app plus a
+            'progress' list of dictionaries about Running and Total tasks
+        """
         r = super().generate_standardized_info(yarn_application_info)
-
-        all_jobs = self.jobs()
-        r["job"] = max((j["jobId"] for j in all_jobs), default=0)
-
-        r["progress"] = []
-
-        jobs = self.jobs(status="running")
-        if len(jobs) > 0:
+        jobs = self.get_jobs("running")
+        if jobs:
             r["progress"].append(self._aggregate_tasks("Running Tasks", jobs))
             r["state"] = "RUNNING"
-            r["job"] = max(j["jobId"] for j in jobs)
         else:
             r["state"] = "IDLE"
-            r["progress"].append(Progress("Running Tasks").__dict__)
+            r["progress"].append(Progress("Running Tasks").to_dict())
 
+        all_jobs = self.get_jobs()
         r["progress"].append(self._aggregate_tasks("Total", all_jobs))
 
         return r
 
 
 class MapredHandler(BaseHandler):
-    prefix = "{tracking_url}/ws/{version}/mapreduce"
+    """Aggregates MapReduce job information for the frontend."""
+    def get_jobs(self):
+        """Issues an HTTP GET to fetch information about MapReduce jobs.
 
-    def jobs(self, job_id=None):
-        base = "/jobs"
-        return self.get_url(base)
+        Returns
+        -------
+        dict
+            JSON-decoded response, https://hadoop.apache.org/docs/current/hadoop-mapreduce-client/hadoop-mapreduce-client-core/MapredAppMasterRest.html#Job_API
+        """
+        return self.get_url('ws/v1/mapreduce/jobs')
 
     def _aggregate_maps(self, tasks):
-        p = Progress("Map")
+        """Aggreagates the mapper metrics for a job.
+
+        Paramters
+        ---------
+        name: str
+            Name describing the mappers
+        tasks: list
+            List of mapper info dictionaries from the MR tracking API
+
+        Returns
+        -------
+        dict
+            Progress object in dictionary form
+        """
+        p = Progress("Maps")
         for jobinfo in tasks:
             p.completed += jobinfo["mapsCompleted"]
             p.failed += jobinfo["failedMapAttempts"]
             p.running += jobinfo["mapsRunning"]
             p.total += jobinfo["mapsTotal"]
-        return p.__dict__
+        return p.to_dict()
 
     def _aggregate_reduces(self, tasks):
+        """Aggreagates the reducer metrics for a job.
+
+        Paramters
+        ---------
+        name: str
+            Name describing the reducers
+        tasks: list
+            List of reducers info dictionaries from the MR tracking API
+
+        Returns
+        -------
+        dict
+            Progress object in dictionary form
+        """
         p = Progress("Reduces")
         for jobinfo in tasks:
             p.completed += jobinfo["reducesCompleted"]
             p.failed += jobinfo["failedReduceAttempts"]
             p.running += jobinfo["reducesRunning"]
             p.total += jobinfo["reducesTotal"]
-        return p.__dict__
+        return p.to_dict()
 
     def generate_standardized_info(self, yarn_application_info):
+        """Transforms information from the YARN ResourceManager and the MapReduce ApplicationMaster
+        into a dictionary of standard fields used by the frontend.
+
+        Parameters
+        ----------
+        yarn_application_info: dict
+            Information about a single app retrieved using YARNHandler.cluster_applications()
+
+        Returns
+        -------
+        dict
+            Fields to copy verbatim from the YARN information about the app plus a
+            'progress' list of dictionaries about Map and Reduce tasks
+        """
         r = super().generate_standardized_info(yarn_application_info)
-        jobs = self.jobs().get("jobs", {}).get("job", [])
-        if len(jobs) > 0:
+        jobs = self.get_jobs().get("jobs", {}).get("job", [])
+        if jobs:
             r['progress'] = []
             r['progress'].append(self._aggregate_maps(jobs))
             r['progress'].append(self._aggregate_reduces(jobs))
@@ -235,59 +341,63 @@ class MapredHandler(BaseHandler):
         return r
 
 
-threadpool = concurrent.futures.ThreadPoolExecutor(THREADPOOL_SIZE)
-atexit.register(lambda: threadpool.shutdown(False))
+class YARNPoller(object):
+    """Polls a YARN ResourceManager and YARN ApplicationMasters for information
+    about the state of known applications.
 
+    Parameters
+    ----------
+    redis_client: redis.StrictRedis
+        Used to stash state from the last fetch in redis for use by the frontend
+    yarn_handler: YARNHandler
+        Used to issue HTTP requests to a YARN ResourceManager
 
-class Singleton(type):
-    """Metaclass for making a singleton."""
-
-    _instances = {}
-
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
-        return cls._instances[cls]
-
-
-class YARNModel(object, metaclass=Singleton):
-    """Model for information about a YARN cluster for the YARNitor web UI.
+    Attributes
+    ----------
+    redis_client: redis.StrictRedis
+        Used to stash state from the last fetch in redis for use by the frontend
+    yarn_handler: YARNHandler
+        Used to issue HTTP requests to a YARN ResourceManager
+    application_handlers: dict
+        Maps applicationType to BaseHandler-derived classes that can fetch
+        additional information about applications
+    state: dict
+        Last known cluster application state
     """
-
-    def __init__(self, redis_client):
+    def __init__(self, redis_client, yarn_handler):
         self.redis_client = redis_client
-        self.yarn_handler = YarnApi(os.environ["YARN_ENDPOINT"])
-        self.sleep_time = int(os.environ["YARN_POLL_SLEEP"])
+        self.yarn_handler = yarn_handler
         self.application_handlers = {}
-        self.register_handler("SPARK", SparkHandler)
-        self.register_handler("MAPREDUCE", MapredHandler)
-        self.register_handler("MAPRED", MapredHandler)
         self.state = {"current": {}, "cluster-metrics": {}}
 
     def register_handler(self, application_type, handler_class):
-        """
+        """Registers a BaseHandler class to handle fetching progress details
+        about a specific application type.
 
         Parameters
         ----------
         application_type : str
+            Application type to handle with the given class
         handler_class : BaseHandler
             Subclass of BaseApplicationInfo
-
         """
         self.application_handlers[application_type] = handler_class
 
     def _make_application_handler(self, yarn_application_info):
-        """Generates a handler for the given yarn application info.
+        """Instantiates a handler for the given YARN application info
+        based on its applicationType field value and the registered handlers.
 
-        This allows pluggability for different kinds of applications.
+        Falls back on using a BaseHandler instance for basic metrics when there
+        is no handler registered for the type in the response.
 
         Parameters
         ----------
-        yarn_application_info : dict
+        yarn_application_info: dict
+            Information about a single app retrieved using YARNHandler.cluster_applications()
 
         Returns
         -------
-        instance of BaseApplicationInfo
+        instance of BaseHandler
 
         Raises
         ------
@@ -296,21 +406,43 @@ class YARNModel(object, metaclass=Singleton):
         """
         app_type = yarn_application_info['applicationType']
         klass = self.application_handlers.get(app_type, BaseHandler)
-        return klass.from_yarn_application_info(yarn_application_info)
+        return klass(yarn_application_info['trackingUrl'], yarn_application_info['id'])
 
     def _generate_listing(self):
-        """Computes the listing of applications and the additional information
+        """Computes the listing of YARN applications and the additional information
         provided by the handlers.
 
+        Blocks while running the work of fetching application details from tracking
+        APIs using the global threadpool.
+
+        Returns
+        -------
+        dict
+            YARN application IDs as keys mapped to application detail dictionaries
+            as values
         """
+        # Fetch all running applications
         cluster_apps = self.yarn_handler.cluster_applications("RUNNING")
         if 'apps' not in cluster_apps or cluster_apps['apps'] is None:
+            # Something might be wrong if there are no applications
             logger.warn('No application data available')
             return {}
         apps = cluster_apps['apps']['app']
 
-
         def run_task(app):
+            """Fetches application details using the appropriate registered
+            handler for the application type.
+
+            Parameters
+            ----------
+            app: dict
+                Application information from the YARN ResourceManager
+
+            Returns
+            -------
+            dict
+                Application information in the format expected by the frontend
+            """
             std_info = None
             try:
                 ah = self._make_application_handler(app)
@@ -321,10 +453,11 @@ class YARNModel(object, metaclass=Singleton):
                 # passing warning versus let bubble because it's a real problem
                 logger.exception("Error for application %s %s", app["id"],
                                  app["name"])
-            # Falling back to just the yarn information
+            # Fall back to just the yarn information
             if std_info is None:
-                ah = BaseHandler.from_yarn_application_info(app)
+                ah = BaseHandler(app['trackingUrl'], app['id'])
                 std_info = ah.generate_standardized_info(app)
+                # Indicate that the tracking API for the app did not respond
                 std_info["state"] = NON_RESPONSIVE_STATE
 
             return std_info
@@ -333,7 +466,7 @@ class YARNModel(object, metaclass=Singleton):
         async_result = threadpool.map(run_task, apps, timeout=THREADPOOL_TIMEOUT)
         # Materialize results as a list, we need them all anyway
         results = list(async_result)
-        # Count number of apps with unknown state
+        # Count the number of apps with the non-responsive state set
         num_unknown_state = sum(1 if info['state'] == NON_RESPONSIVE_STATE else 0
                                 for info in results)
 
@@ -351,8 +484,10 @@ class YARNModel(object, metaclass=Singleton):
         return result
 
     def run_update(self):
-        """Single step for the update listing"""
-        logger.debug("generating listing")
+        """Fetches YARN cluster and application information, and store it timestamped
+        in redis as a JSON string for retrieval by the frontend.
+        """
+        logger.info("Updating metrics from YARN")
         self.state["current"] = self._generate_listing()
         self.state["cluster-metrics"] = self.yarn_handler.cluster_metrics()
         # Make the datetime conform to true ISO-8601 by adding Z(ulu) to indicate
@@ -361,22 +496,39 @@ class YARNModel(object, metaclass=Singleton):
         # https://en.wikipedia.org/wiki/ISO_8601#Time_zone_designators
         self.state["refresh-datetime"] = datetime.datetime.utcnow().isoformat() + 'Z'
         self.redis_client.set(YARN_STATUS_KEY, json.dumps(self.state))
+        logger.info("Done updating metrics from YARN")
 
-    def loop(self):
+    def loop(self, sleep_time):
+        """Executes the `run_update` message in a loop that catches and logs
+        all exceptions indefinitely.
+
+        Parameters
+        ----------
+        sleep_time: float
+            Time to sleep after executing `run_update`
+        """
         while True:
             try:
                 self.run_update()
             except Exception:
                 logger.exception('Unknown exception while updating')
-            time.sleep(self.sleep_time)
+            time.sleep(sleep_time)
 
 
 def main():
-    host, port = os.getenv('REDIS_ENDPOINT', "localhost:6379").split(":")
+    """Creates a redis client, a YARN ResourceManager REST API client, and a YARN
+    poller that puts information about the YARN cluster and its applications into
+    redis on a timed interval.
+    """
+    host, port = os.environ['REDIS_ENDPOINT'].split(":")
     redis_client = redis.StrictRedis(host=host, port=port)
+    yarn_handler = YARNHandler(os.environ['YARN_ENDPOINT'])
 
-    ym = YARNModel(redis_client)
-    ym.loop()
+    ym = YARNPoller(redis_client, yarn_handler)
+    ym.register_handler("SPARK", SparkHandler)
+    ym.register_handler("MAPREDUCE", MapredHandler)
+    ym.register_handler("MAPRED", MapredHandler)
+    ym.loop(int(os.environ["YARN_POLL_SLEEP"]))
 
 
 if __name__ == '__main__':
