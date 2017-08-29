@@ -201,7 +201,7 @@ class SparkHandler(BaseHandler):
         dict
             JSON-decoded response, https://spark.apache.org/docs/latest/monitoring.html#rest-api
         """
-        path = "api/v1/applications/{application_id}/jobs"
+        path = "api/v1/applications/{id}/jobs".format(id=self.application_id)
         params = {"status": status} if status is not None else {}
         return self.get_url(path, **params)
 
