@@ -78,7 +78,7 @@ $(document).ready(function() {
             "search": "",
             "searchPlaceholder": "Filter records",
             "buttons": {
-                "colvis": '<i class="glyphicon glyphicon-th-list"></i>'
+                "colvis": '<i class="glyphicon glyphicon-th-list" title="Show/hide columns"></i>'
             }
         },
         dom: ("<'row'<'col-xs-8'l><'col-xs-4 dataTables_controls'Bf>>" +
