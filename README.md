@@ -1,8 +1,10 @@
+# Yarnitor
+
+[![TravisCI badge](https://travis-ci.org/maxpoint/yarnitor.svg?branch=master)](https://travis-ci.org/maxpoint/yarnitor)
+
 Yarnitor is a pluggable YARN monitoring API and web frontend.
 
 ![Yarnitor screenshot](./screenshot.png)
-
-[![CircleCI](https://circleci.com/gh/maxpoint/yarnitor/tree/master.svg?style=svg)](https://circleci.com/gh/maxpoint/yarnitor/tree/master)
 
 ## Requirements
 
@@ -63,7 +65,8 @@ docker-compose run --rm \
 
 ## Test
 
-To run tests in a the Flask container, execute the following:
+To run a headless end-to-end smoke test from a mock YARN ResourceManager to the frontend API
+(but not UI), execute:
 
 ```bash
 make test
