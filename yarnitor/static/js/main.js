@@ -190,7 +190,7 @@ $(document).ready(function() {
                     }
                 }
             },
-            {"data": "id", "title": "Application ID", "visible": false},
+            {"data": "id", "title": "Application ID"},
         ]
     });
 
