@@ -66,7 +66,10 @@ $(document).ready(function() {
         scrollY: calcHeight(),
         paging: false,
         colReorder: true,
+        // Save column state in the user's browser
         stateSave: true,
+        // Keep user column state forever, don't expire it
+        stateDuration: 0,
         order: [[4, 'desc']],
         buttons: [
             {
