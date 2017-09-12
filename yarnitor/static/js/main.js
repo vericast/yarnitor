@@ -89,43 +89,56 @@ $(document).ready(function() {
                 data: "name",
                 title: "Name",
                 render: function(data, type, row, meta) {
-                    if(data.length > MAX_NAME_LENGTH) {
-                        data = data.substr(0, MAX_NAME_LENGTH) + '...';
+                    if(type === 'display') {
+                        if(data.length > MAX_NAME_LENGTH) {
+                            // Abbreviate the name for display, preserving a prefix and suffix
+                            data = data.substr(0, MAX_NAME_LENGTH/2) + '...' + data.substr(-MAX_NAME_LENGTH/2);
+                        }
+                        var html = Mustache.render(name_tmpl, {
+                            name: data,
+                            trackingUrl: row.trackingUrl,
+                            id: row.id
+                        });
+                        return html;
+                    } else {
+                        // Return the raw name for sorting, filtering, etc.
+                        return data;
                     }
-                    var html = Mustache.render(name_tmpl, {
-                        name: data,
-                        trackingUrl: row.trackingUrl,
-                        id: row.id
-                    });
-                    return html;
                 }
             },
             {data: "user", title: "User"},
             {data: "state", title: "State"},
             {
                 title: "Progress",
+                sortable: false,
+                searchable: false,
                 render: function(data, type, row, meta) {
-                    // progress bars
-                    var bar_htmls = row.progress.map(function(progress) {
-                        var total = progress.completed + progress.running + progress.failed;
-                        total = (progress.total > total) ? progress.total : total;
-                        var args = {
-                            completed: progress.completed,
-                            completed_ratio: progress.completed / progress.total * 100,
-                            running: progress.running,
-                            running_ratio: progress.running / progress.total * 100,
-                            failed: progress.failed,
-                            failed_ratio: progress.failed / progress.total * 100,
-                            total: progress.total
-                        };
+                    if(type === 'display') {
+                        // progress bars
+                        var bar_htmls = row.progress.map(function(progress) {
+                            var total = progress.completed + progress.running + progress.failed;
+                            total = (progress.total > total) ? progress.total : total;
+                            var args = {
+                                completed: progress.completed,
+                                completed_ratio: progress.completed / progress.total * 100,
+                                running: progress.running,
+                                running_ratio: progress.running / progress.total * 100,
+                                failed: progress.failed,
+                                failed_ratio: progress.failed / progress.total * 100,
+                                total: progress.total
+                            };
 
-                        return Mustache.render(progress_tmpl, args);
-                    });
+                            return Mustache.render(progress_tmpl, args);
+                        });
 
-                    return Mustache.render(progress_container_tmpl, {
-                        progress_html: bar_htmls.join('\n'),
-                        popover_html : Mustache.render(progress_popover_tmpl, row)
-                    });
+                        return Mustache.render(progress_container_tmpl, {
+                            progress_html: bar_htmls.join('\n'),
+                            popover_html : Mustache.render(progress_popover_tmpl, row)
+                        });
+                    } else {
+                        // Return a string sentinel for type requests
+                        return '';
+                    }
                 }
             },
             {data: "allocatedVCores", title: "VCPUs"},
@@ -168,10 +181,13 @@ $(document).ready(function() {
             },
             {
                 "data": "startedTime",
-                "sortable": false,
                 "title": "Uptime",
                 "render": function(data, type, row, meta) {
-                    return moment.duration(moment.utc() - moment(data)).humanize();
+                    if(type === 'display' || type === 'filter') {
+                        return moment.duration(moment.utc() - moment(data)).humanize();
+                    } else {
+                        return (new Date(data)).getTime();
+                    }
                 }
             },
             {"data": "id", "title": "Application ID", "visible": false},
