@@ -187,8 +187,10 @@ $(document).ready(function() {
                 "title": "Uptime",
                 "render": function(data, type, row, meta) {
                     if(type === 'display' || type === 'filter') {
+                        // Use a human readable uptime for display and filtering
                         return moment.duration(moment.utc() - moment(data)).humanize();
                     } else {
+                        // Use the int time since epoch for sorting
                         return (new Date(data)).getTime();
                     }
                 }
