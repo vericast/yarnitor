@@ -1,6 +1,6 @@
 # Yarnitor
 
-[![TravisCI badge](https://travis-ci.org/maxpoint/yarnitor.svg?branch=master)](https://travis-ci.org/maxpoint/yarnitor)
+[![TravisCI badge](https://travis-ci.org/Valassis-Digital-Media/yarnitor.svg?branch=master)](https://travis-ci.org/Valassis-Digital-Media/yarnitor)
 
 Yarnitor is a pluggable YARN monitoring API and web frontend.
 
