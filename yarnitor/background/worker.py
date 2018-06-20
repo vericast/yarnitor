@@ -121,7 +121,7 @@ class YARNHandler(object):
                 if not available_hosts:
                     resp.raise_for_status()
                 # Take one, any one, as the new primary
-                for new_host in self.all_hosts: break
+                for new_host in available_hosts: break
                 self.base_url['host'] = new_host
                 logger.warn('YARN RM down, switching to URL: %s', new_host)
             else:
@@ -568,9 +568,15 @@ def main():
     log_level = os.getenv('LOG_LEVEL', 'INFO')
     logging.basicConfig(level=getattr(logging, log_level))
 
-    host, port = os.environ['REDIS_ENDPOINT'].split(":")
+    redis_endpoint = os.environ['REDIS_ENDPOINT']
+    yarn_endpoint = os.environ['YARN_ENDPOINT']
+
+    logger.info('Redis endpoint: %s', redis_endpoint)
+    logger.info('YARN endpoint(s): %s', yarn_endpoint)
+
+    host, port = redis_endpoint.split(":")
     redis_client = redis.StrictRedis(host=host, port=port)
-    yarn_handler = YARNHandler(os.environ['YARN_ENDPOINT'])
+    yarn_handler = YARNHandler(yarn_endpoint)
 
     ym = YARNPoller(redis_client, yarn_handler)
     ym.register_handler("SPARK", SparkHandler)
