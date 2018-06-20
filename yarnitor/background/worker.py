@@ -75,7 +75,9 @@ class YARNHandler(object):
     Parameters
     ----------
     host: str
-        Protocol, hostname, and optional port of the YARN RM
+        Protocol, hostname, and optional port of the YARN RM. Can be a comma
+        separated list of values in which case the first is chosen as the
+        primary RM and the others are used if the primary becomes unavailable.
     version: str, optional
         Version of the YARN RM API
 
@@ -85,8 +87,9 @@ class YARNHandler(object):
         'host' and 'version' of the YARN RM
     """
     def __init__(self, host, version="v1"):
+        self.all_hosts = host.split(',')
         self.base_url = {
-            'host': host,
+            'host': self.all_hosts[0],
             'version': version
         }
 
@@ -106,25 +109,37 @@ class YARNHandler(object):
         dict
             JSON decoded response
         """
+        available_hosts = set(self.all_hosts)
         # Handle HA redirects in a loop so that we can control how many
-        # we're willing to follow and don't blow out the stack with recursion.
+        # we're willing to follow.
         for i in range(MAX_HA_REDIRECTS):
             final_url = "{host}/ws/{version}/{path}".format(path=path, **self.base_url)
             resp = requests.get(final_url, params)
-            resp.raise_for_status()
-            # YARN uses the Refresh header to indicate a change in the primary RM
-            ha_redirect = resp.headers.get('Refresh')
-            if ha_redirect is None:
-                # The configured RM is still the primary RM: leave it be
-                break
-            # Store the new host in the instance for the next request
-            # It comes in the form "3; url=http://newhost:port/same/path/as/request?args"
-            _, key = ha_redirect.split(';')
-            _, new_url = key.strip().split('url=')
-            parsed = urlparse(new_url.strip())
-            new_host = '{parsed.scheme}://{parsed.netloc}'.format(parsed=parsed)
-            self.base_url['host'] = new_host
-            logger.warn('YARN HA redirect, switching to URL: %s', new_host)
+            if resp.status_code >= 400:
+                # Take the host out of the pool of available for this attempt only
+                available_hosts.remove(self.base_url['host'])
+                if not available_hosts:
+                    resp.raise_for_status()
+                # Take one, any one, as the new primary
+                for new_host in available_hosts: break
+                self.base_url['host'] = new_host
+                logger.warn('YARN RM down, switching to URL: %s', new_host)
+            else:
+                # YARN sometimes uses the Refresh header to indicate a change in the primary RM
+                ha_redirect = resp.headers.get('Refresh')
+                if ha_redirect is None:
+                    # The configured RM is still the primary RM: leave it be
+                    break
+                # Store the new host in the instance for the next request
+                # It comes in the form "3; url=http://newhost:port/same/path/as/request?args"
+                _, key = ha_redirect.split(';')
+                _, new_url = key.strip().split('url=')
+                parsed = urlparse(new_url.strip())
+                new_host = '{parsed.scheme}://{parsed.netloc}'.format(parsed=parsed)
+                self.base_url['host'] = new_host
+                logger.warn('YARN RM redirect, switching to URL: %s', new_host)
+        else:
+            raise RuntimeError('Too many YARN redirects')
         return resp.json()
 
     def cluster_applications(self, *state):
@@ -553,9 +568,15 @@ def main():
     log_level = os.getenv('LOG_LEVEL', 'INFO')
     logging.basicConfig(level=getattr(logging, log_level))
 
-    host, port = os.environ['REDIS_ENDPOINT'].split(":")
+    redis_endpoint = os.environ['REDIS_ENDPOINT']
+    yarn_endpoint = os.environ['YARN_ENDPOINT']
+
+    logger.info('Redis endpoint: %s', redis_endpoint)
+    logger.info('YARN endpoint(s): %s', yarn_endpoint)
+
+    host, port = redis_endpoint.split(":")
     redis_client = redis.StrictRedis(host=host, port=port)
-    yarn_handler = YARNHandler(os.environ['YARN_ENDPOINT'])
+    yarn_handler = YARNHandler(yarn_endpoint)
 
     ym = YARNPoller(redis_client, yarn_handler)
     ym.register_handler("SPARK", SparkHandler)

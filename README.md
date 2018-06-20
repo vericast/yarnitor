@@ -1,6 +1,6 @@
 # Yarnitor
 
-[![TravisCI badge](https://travis-ci.org/maxpoint/yarnitor.svg?branch=master)](https://travis-ci.org/maxpoint/yarnitor)
+[![TravisCI badge](https://travis-ci.org/Valassis-Digital-Media/yarnitor.svg?branch=master)](https://travis-ci.org/Valassis-Digital-Media/yarnitor)
 
 Yarnitor is a pluggable YARN monitoring API and web frontend.
 
@@ -23,7 +23,8 @@ specifically need:
 
 You must set two environment variables before starting yarnitor.
 
-1. Set `YARN_ENDPOINT` to the YARN application master URL.
+1. Set `YARN_ENDPOINT` to one (or more, comma separated, if running in a HA
+   configuration) YARN application master URLs.
 2. Set `EXPOSED_PORT` to the port on which yarnitor serve its UI.
 
 For example:
