@@ -17,7 +17,6 @@ services:
     command: gunicorn -b 0.0.0.0:8080 --access-logfile - -w 1 yarnitor:app
     environment:
       REDIS_ENDPOINT: "redis:6379"
-      YARN_ENDPOINT: "http://yarn:8088"
       YARN_POLL_SLEEP: 15
 
   # background collector

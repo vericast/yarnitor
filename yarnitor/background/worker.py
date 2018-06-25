@@ -6,7 +6,7 @@ is a Spark application or MapReduce application. Requires the following
 environment variables to configure itself.
 
 YARN_ENDPOINT
-    host:port for yarn api
+    HTTP host and port for one or more comma-separated YARN ResourceManager APIs
 YARN_POLL_SLEEP
     time to sleep between polling in seconds
 REDIS_ENDPOINT
