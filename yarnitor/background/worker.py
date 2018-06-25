@@ -93,6 +93,15 @@ class YARNHandler(object):
             'version': version
         }
 
+    def current_rm(self):
+        """Gets the URL of the YARN RM last queried, successfully or not.
+
+        Returns
+        -------
+        str
+        """
+        return self.base_url['host']
+
     def get_url(self, path, **params):
         """Issues an HTTP GET to the given path with the given parameters
         and treats the response as JSON.
@@ -413,7 +422,7 @@ class YARNPoller(object):
         self.redis_client = redis_client
         self.yarn_handler = yarn_handler
         self.application_handlers = {}
-        self.state = {"current": {}, "cluster-metrics": {}}
+        self.state = {"application-metrics": {}, "cluster-metrics": {}}
 
     def register_handler(self, application_type, handler_class):
         """Registers a BaseHandler class to handle fetching progress details
@@ -533,8 +542,10 @@ class YARNPoller(object):
         in redis as a JSON string for retrieval by the frontend.
         """
         logger.info("Updating metrics from YARN")
-        self.state["current"] = self._generate_listing()
+        self.state["application-metrics"] = self._generate_listing()
         self.state["cluster-metrics"] = self.yarn_handler.cluster_metrics()
+        # Include the last queried cluster RM for UI purposes
+        self.state['current-rm'] = self.yarn_handler.current_rm()
         # Make the datetime conform to true ISO-8601 by adding Z(ulu) to indicate
         # this is truly a UTC time (without a timezone, the spec says it should be
         # treated as local time which is definitely NOT what we want)

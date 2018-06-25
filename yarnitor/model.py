@@ -36,11 +36,20 @@ class YARNModel(object, metaclass=Singleton):
         """
         return self.state.get("refresh-datetime", '')
 
+    def current_rm(self):
+        """Gets the URL of the YARN RM last queried, successfully or not.
+
+        Returns
+        -------
+        str
+        """
+        return self.state.get("current-rm", '')
+
     def applications(self):
-        return self.state.get("current", {})
+        return self.state.get("application-metrics", {})
 
     def application_info(self, application_id):
-        return self.state.get("current", {}).get(application_id, {})
+        return self.state.get("application-metrics", {}).get(application_id, {})
 
     def cluster_metrics(self):
         metrics = self.state.get("cluster-metrics", {})
