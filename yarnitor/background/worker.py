@@ -123,16 +123,18 @@ class YARNHandler(object):
         # we're willing to follow.
         for i in range(MAX_HA_REDIRECTS):
             final_url = "{host}/ws/{version}/{path}".format(path=path, **self.base_url)
-            resp = requests.get(final_url, params)
-            if resp.status_code >= 400:
+            try:
+                resp = requests.get(final_url, params)
+                resp.raise_for_status()
+            except requests.exceptions.RequestException as ex:
                 # Take the host out of the pool of available for this attempt only
                 available_hosts.remove(self.base_url['host'])
                 if not available_hosts:
-                    resp.raise_for_status()
+                    raise RuntimeError('No active YARN RM hosts left to try')
                 # Take one, any one, as the new primary
                 for new_host in available_hosts: break
                 self.base_url['host'] = new_host
-                logger.warn('YARN RM down, switching to URL: %s', new_host)
+                logger.warn('Unable to GET %s, switching to YARN RM at %s', final_url, new_host)
             else:
                 # YARN sometimes uses the Refresh header to indicate a change in the primary RM
                 ha_redirect = resp.headers.get('Refresh')
@@ -146,7 +148,7 @@ class YARNHandler(object):
                 parsed = urlparse(new_url.strip())
                 new_host = '{parsed.scheme}://{parsed.netloc}'.format(parsed=parsed)
                 self.base_url['host'] = new_host
-                logger.warn('YARN RM redirect, switching to URL: %s', new_host)
+                logger.warn('Redirected from %s, switching to YARN RM at: %s', final_url, new_host)
         else:
             raise RuntimeError('Too many YARN redirects')
         return resp.json()
