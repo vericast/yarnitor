@@ -6,7 +6,7 @@ is a Spark application or MapReduce application. Requires the following
 environment variables to configure itself.
 
 YARN_ENDPOINT
-    host:port for yarn api
+    HTTP host and port for one or more comma-separated YARN ResourceManager APIs
 YARN_POLL_SLEEP
     time to sleep between polling in seconds
 REDIS_ENDPOINT
@@ -93,6 +93,15 @@ class YARNHandler(object):
             'version': version
         }
 
+    def current_rm(self):
+        """Gets the URL of the YARN RM last queried, successfully or not.
+
+        Returns
+        -------
+        str
+        """
+        return self.base_url['host']
+
     def get_url(self, path, **params):
         """Issues an HTTP GET to the given path with the given parameters
         and treats the response as JSON.
@@ -114,16 +123,18 @@ class YARNHandler(object):
         # we're willing to follow.
         for i in range(MAX_HA_REDIRECTS):
             final_url = "{host}/ws/{version}/{path}".format(path=path, **self.base_url)
-            resp = requests.get(final_url, params)
-            if resp.status_code >= 400:
+            try:
+                resp = requests.get(final_url, params)
+                resp.raise_for_status()
+            except requests.exceptions.RequestException as ex:
                 # Take the host out of the pool of available for this attempt only
                 available_hosts.remove(self.base_url['host'])
                 if not available_hosts:
-                    resp.raise_for_status()
+                    raise RuntimeError('No active YARN RM hosts left to try')
                 # Take one, any one, as the new primary
                 for new_host in available_hosts: break
                 self.base_url['host'] = new_host
-                logger.warn('YARN RM down, switching to URL: %s', new_host)
+                logger.warn('Unable to GET %s, switching to YARN RM at %s', final_url, new_host)
             else:
                 # YARN sometimes uses the Refresh header to indicate a change in the primary RM
                 ha_redirect = resp.headers.get('Refresh')
@@ -137,7 +148,7 @@ class YARNHandler(object):
                 parsed = urlparse(new_url.strip())
                 new_host = '{parsed.scheme}://{parsed.netloc}'.format(parsed=parsed)
                 self.base_url['host'] = new_host
-                logger.warn('YARN RM redirect, switching to URL: %s', new_host)
+                logger.warn('Redirected from %s, switching to YARN RM at: %s', final_url, new_host)
         else:
             raise RuntimeError('Too many YARN redirects')
         return resp.json()
@@ -413,7 +424,7 @@ class YARNPoller(object):
         self.redis_client = redis_client
         self.yarn_handler = yarn_handler
         self.application_handlers = {}
-        self.state = {"current": {}, "cluster-metrics": {}}
+        self.state = {"application-metrics": {}, "cluster-metrics": {}}
 
     def register_handler(self, application_type, handler_class):
         """Registers a BaseHandler class to handle fetching progress details
@@ -533,8 +544,10 @@ class YARNPoller(object):
         in redis as a JSON string for retrieval by the frontend.
         """
         logger.info("Updating metrics from YARN")
-        self.state["current"] = self._generate_listing()
+        self.state["application-metrics"] = self._generate_listing()
         self.state["cluster-metrics"] = self.yarn_handler.cluster_metrics()
+        # Include the last queried cluster RM for UI purposes
+        self.state['current-rm'] = self.yarn_handler.current_rm()
         # Make the datetime conform to true ISO-8601 by adding Z(ulu) to indicate
         # this is truly a UTC time (without a timezone, the spec says it should be
         # treated as local time which is definitely NOT what we want)

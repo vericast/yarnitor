@@ -36,21 +36,21 @@ $(document).ready(function() {
         columns: [
             {
                 data: "totalNodes",
-                title: "<a title='Active / Total Nodes' href='"+YARN_BASE_URL+"/cluster/nodes'>Nodes</a>",
+                title: "<a class='yarn-nodes-link' title='Active / Total Nodes' href='#/cluster/nodes'>Nodes</a>",
                 render: function(data, type, row) {
                     return (row['activeNodes']) + ' / ' + data;
                 }
             },
             {
                 data: "totalVirtualCores",
-                title: "<a title='Available / Total VCPUs' href='"+YARN_BASE_URL+"/cluster/apps'>VCPUs</a>",
+                title: "<a class='yarn-apps-link' title='Available / Total VCPUs' href='#/cluster/apps'>VCPUs</a>",
                 render: function(data, type, row) {
                     return row['availableVirtualCores'] + ' / ' + data;
                 }
             },
             {
                data: "totalMB",
-               title: "<a title='Available / Total RAM in GB' href='"+YARN_BASE_URL+"/cluster/scheduler'>RAM (GB)</a>",
+               title: "<a class='yarn-scheduler-link' title='Available / Total RAM in GB' href='#/cluster/scheduler'>RAM (GB)</a>",
                render: function(data, type, row) {
                     return Math.round(row['availableMB'] / 1024) + ' / ' + Math.round(data / 1024);
                }
@@ -216,12 +216,12 @@ $(document).ready(function() {
 
     table.on('xhr.dt', function() {
         console.log('yarnitor:xhr.dt');
-        // destroy the popovers before the draw phase kicks in.
+        // Destroy the popovers before the draw phase kicks in.
         $('[data-toggle="popover"]').popover("destroy");
         pageScrollPos = $('div.dataTables_scrollBody').scrollTop();
     });
 
-    var reloadDatetime = function() {
+    var reloadStatus = function() {
         $.get({
             url: YARNITOR_BASE_URL+"/api/status",
             dataType: 'json'
@@ -232,6 +232,14 @@ $(document).ready(function() {
                 var d = (new Date(data.refresh_datetime)).toLocaleString();
                 $('.dataTables_refreshed').text('Showing data from ' + d);
             }
+            // Update cluster metrics links to the current RM in a best effort
+            // attempt to link to the one that is currently primary.
+            var rm = data.current_rm;
+            if(rm) {
+                $('.yarn-nodes-link').attr('href', rm + '/cluster/nodes')
+                $('.yarn-apps-link').attr('href', rm + '/cluster/apps')
+                $('.yarn-scheduler-link').attr('href', rm + '/cluster/scheduler')
+            }
         });
     }
 
@@ -239,13 +247,13 @@ $(document).ready(function() {
         console.log('yarnitor:refresh');
         table.ajax.reload();
         cluster_table.ajax.reload();
-        reloadDatetime();
+        reloadStatus();
     }, YARNITOR_REFRESH_INTERVAL_S * 1000);
 
     // Throw exceptions in the console, not in alert dialogs
     $.fn.dataTable.ext.errMode = 'throw';
     // Immediately try to fetch datetime of last data refresh
-    reloadDatetime();
+    reloadStatus();
     // Set the initial filter text by pulling it from the URL hash
     table.search(window.location.hash.substr(1));
 

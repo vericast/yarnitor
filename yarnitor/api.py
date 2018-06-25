@@ -22,7 +22,8 @@ def status():
     ym = get_model()
     return jsonify({
         'status': 'ok',
-        'refresh_datetime': ym.refresh_datetime()
+        'refresh_datetime': ym.refresh_datetime(),
+        'current_rm': ym.current_rm()
     })
 
 
