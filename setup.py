@@ -15,9 +15,9 @@ setup_args = dict(
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
-        'flask==0.11.*',
+        'flask',
         'flask-cache',
-        'flask-redis==0.3.0',
+        'flask-redis',
         'requests',
     ]
 )
