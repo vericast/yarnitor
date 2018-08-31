@@ -1,5 +1,5 @@
-flask>=0.12
-flask-cache
-flask-redis==0.3.0
-gunicorn==19.6.*
+flask==0.12.*
+flask-caching
+flask-redis==0.3.*
+gunicorn==19.9.*
 requests

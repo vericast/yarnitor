@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_redis import FlaskRedis
-from flask_cache import Cache
+from flask_caching import Cache
 from .ui import ui_bp
 from .api import api_bp
 import os
