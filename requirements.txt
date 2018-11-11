@@ -1,4 +1,4 @@
-flask==0.12.*
+flask==1.0.*
 flask-caching
 flask-redis==0.3.*
 gunicorn==19.9.*
