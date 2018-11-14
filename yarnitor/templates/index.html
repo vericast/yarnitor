@@ -6,7 +6,7 @@
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black">
 
-        <title>Yarnitor - A YARN Monitor</title>
+        <title>{{ cluster }} - Yarnitor</title>
 
         <!-- Font for title -->
         <link href="https://fonts.googleapis.com/css?family=Finger+Paint" rel="stylesheet">
@@ -43,6 +43,7 @@
         <script src="{{ url_for('ui.static', filename='bower_components/moment/moment.js') }}"></script>
         <script src="{{ url_for('ui.static', filename='js/main.js') }}"></script>
         <script>
+            var YARNITOR_CLUSTER = '{{ cluster }}';
             var YARNITOR_BASE_URL = '{{ config["BASE_URL"] }}';
             var YARNITOR_REFRESH_INTERVAL_S = '{{ config["YARN_POLL_SLEEP"] }}';
         </script>

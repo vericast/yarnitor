@@ -28,7 +28,7 @@ $(document).ready(function() {
 
     // Cluster status table.
     var cluster_table = $("#yarn_status").DataTable({
-        ajax: YARNITOR_BASE_URL+"/api/cluster",
+        ajax: YARNITOR_BASE_URL+"/api/clusters/"+YARNITOR_CLUSTER,
         paging: false,
         searching: false,
         ordering: false,
@@ -60,7 +60,7 @@ $(document).ready(function() {
 
     // Main applications table
     var table = $('#yarn_applications').DataTable({
-        ajax: YARNITOR_BASE_URL+"/api/applications",
+        ajax: YARNITOR_BASE_URL+"/api/clusters/"+YARNITOR_CLUSTER+"/applications",
         rowId: "id",
         scrollX: true,
         scrollY: calcHeight(),
@@ -223,7 +223,7 @@ $(document).ready(function() {
 
     var reloadStatus = function() {
         $.get({
-            url: YARNITOR_BASE_URL+"/api/status",
+            url: YARNITOR_BASE_URL+"/api/clusters/"+YARNITOR_CLUSTER+"/status",
             dataType: 'json'
         }).done(function(data) {
             // Show datetime data was last refreshed from the YARN API

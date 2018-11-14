@@ -11,6 +11,8 @@ YARN_POLL_SLEEP
     time to sleep between polling in seconds
 REDIS_ENDPOINT
     host:port for a redis instance
+REDIS_KEY
+    Redis key / cluster name under which to store app info (default: "default")
 LOG_LEVEL
     DEBUG, INFO (default), WARNING, ERROR strings from the logging package
 """
@@ -27,8 +29,6 @@ from urllib.parse import urlparse
 
 import redis
 import requests
-
-from yarnitor.common_config import YARN_STATUS_KEY
 
 logger = logging.getLogger("yarn-background-worker")
 
@@ -414,15 +414,18 @@ class YARNPoller(object):
         Used to stash state from the last fetch in redis for use by the frontend
     yarn_handler: YARNHandler
         Used to issue HTTP requests to a YARN ResourceManager
+    redis_key: str
+        Key to store gathered stats under in Redis
     application_handlers: dict
         Maps applicationType to BaseHandler-derived classes that can fetch
         additional information about applications
     state: dict
         Last known cluster application state
     """
-    def __init__(self, redis_client, yarn_handler):
+    def __init__(self, redis_client, yarn_handler, redis_key):
         self.redis_client = redis_client
         self.yarn_handler = yarn_handler
+        self.redis_key = redis_key
         self.application_handlers = {}
         self.state = {"application-metrics": {}, "cluster-metrics": {}}
 
@@ -553,7 +556,7 @@ class YARNPoller(object):
         # treated as local time which is definitely NOT what we want)
         # https://en.wikipedia.org/wiki/ISO_8601#Time_zone_designators
         self.state["refresh-datetime"] = datetime.datetime.utcnow().isoformat() + 'Z'
-        self.redis_client.set(YARN_STATUS_KEY, json.dumps(self.state))
+        self.redis_client.set(self.redis_key, json.dumps(self.state))
         logger.info("Done updating metrics from YARN")
 
     def loop(self, sleep_time):
@@ -583,6 +586,7 @@ def main():
 
     redis_endpoint = os.environ['REDIS_ENDPOINT']
     yarn_endpoint = os.environ['YARN_ENDPOINT']
+    redis_key = os.getenv('REDIS_KEY', 'default')
 
     logger.info('Redis endpoint: %s', redis_endpoint)
     logger.info('YARN endpoint(s): %s', yarn_endpoint)
@@ -591,7 +595,7 @@ def main():
     redis_client = redis.StrictRedis(host=host, port=port)
     yarn_handler = YARNHandler(yarn_endpoint)
 
-    ym = YARNPoller(redis_client, yarn_handler)
+    ym = YARNPoller(redis_client, yarn_handler, redis_key)
     ym.register_handler("SPARK", SparkHandler)
     ym.register_handler("MAPREDUCE", MapredHandler)
     ym.register_handler("MAPRED", MapredHandler)
