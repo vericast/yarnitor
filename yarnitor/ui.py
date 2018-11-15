@@ -1,10 +1,21 @@
 """YARN monitoring built-in UI."""
 import time
 
-from flask import Blueprint, render_template, url_for
+from flask import Blueprint, abort, current_app, render_template, url_for
 
 ui_bp = Blueprint('ui', __name__, static_folder='static')
 version = str(time.time())
+
+
+def get_model(cluster):
+    """Gets a YARNModel for a given cluster
+
+    Returns
+    -------
+    YARNModel
+    """
+    from .model import get_model
+    return get_model(cluster)
 
 
 def versioned_url_for(endpoint, **args):
@@ -37,6 +48,19 @@ def override_url_for():
     return dict(url_for=versioned_url_for)
 
 
-@ui_bp.route('/')
-def index():
-    return render_template('index.html')
+@ui_bp.route('/', defaults={'cluster': None})
+@ui_bp.route('/<cluster>')
+def index(cluster):
+    """Renders the YARNitor single-page app.
+
+    Parameters
+    ----------
+    cluster: str
+        Cluster name or blank to use the default
+    """
+    if cluster is None:
+        cluster = current_app.config['DEFAULT_CLUSTER_KEY']
+    if get_model(cluster).exists():
+        return render_template('index.html', cluster=cluster)
+    else:
+        abort(404)

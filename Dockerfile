@@ -25,6 +25,6 @@ RUN useradd -ms /bin/bash yarnitor
 
 # install yarnitor last to get the most caching
 COPY . /usr/src/app
-RUN pip install .
+RUN pip install --no-binary --no-deps .
 
 USER yarnitor

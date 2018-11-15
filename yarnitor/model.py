@@ -1,36 +1,52 @@
 """YARN monitoring model."""
-from flask import json
+import json
 
-from .core import redis_store, cache
-from .common_config import YARN_STATUS_KEY
+from .core import cache, redis_store
 
-
-class Singleton(type):
-    """Metaclass for making a singleton."""
-
-    _instances = {}
-
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
-        return cls._instances[cls]
+# YARN model singletons by redis/cluster key
+_instances = {}
 
 
-class YARNModel(object, metaclass=Singleton):
-    """Model class that exposes YARN metrics stored in redis
-    by a separate worker process.
+def get_model(key):
+    """Gets a singleton YARNModel instance for the given key.
+
+    Parameters
+    ----------
+    key: str
+        Redis key / cluster name under which to store app info
     """
+    if key not in _instances:
+        _instances[key] = YARNModel(key)
+    return _instances[key]
+
+
+class YARNModel(object):
+    """Model class that exposes YARN metrics stored in redis by a separate
+    worker process.
+    """
+    def __init__(self, key):
+        self.key = key
+
     @property
-    @cache.cached(timeout=2, key_prefix="yarnmodel.state")
+    @cache.cached(timeout=5)
     def state(self):
-        state = redis_store.get(YARN_STATUS_KEY)
+        state = redis_store.get(self.key)
         return json.loads(state) if state is not None else {}
 
-    def refresh_datetime(self):
-        """Get the UTC datetime of the last data fetch.
+    def exists(self):
+        """Gets if information about the cluster exists.
 
         Returns
-        =======
+        -------
+        bool
+        """
+        return redis_store.get(self.key) is not None
+
+    def refresh_datetime(self):
+        """Gets the UTC datetime of the last data fetch.
+
+        Returns
+        -------
         str
             ISO-8601 datetime string
         """
@@ -46,11 +62,29 @@ class YARNModel(object, metaclass=Singleton):
         return self.state.get("current-rm", '')
 
     def applications(self):
+        """Gets all YARN application metrics.
+
+        Returns
+        -------
+        dict
+        """
         return self.state.get("application-metrics", {})
 
     def application_info(self, application_id):
+        """Gets metrics for a single YARN application.
+
+        Returns
+        -------
+        dict
+        """
         return self.state.get("application-metrics", {}).get(application_id, {})
 
     def cluster_metrics(self):
+        """Gets metrics for an entire YARN cluster.
+
+        Returns
+        -------
+        dict
+        """
         metrics = self.state.get("cluster-metrics", {})
         return metrics.get('clusterMetrics', {})

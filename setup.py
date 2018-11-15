@@ -16,7 +16,7 @@ setup_args = dict(
     include_package_data=True,
     install_requires=[
         'flask',
-        'flask-cache',
+        'flask-caching',
         'flask-redis',
         'requests',
     ]

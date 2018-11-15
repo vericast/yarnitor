@@ -25,13 +25,13 @@ specifically need:
 You must set two environment variables before starting yarnitor.
 
 1. Set `YARN_ENDPOINT` to one (or more, comma separated, if running in a HA
-   configuration) YARN application master URLs.
+   configuration) YARN ResourceManager URLs.
 2. Set `EXPOSED_PORT` to the port on which yarnitor serve its UI.
 
 For example:
 
 ```bash
-export YARN_ENDPOINT=http://yarn-application-master.mydomain.tld:8088
+export YARN_ENDPOINT=http://yarn-resource-manager.mydomain.tld:8088
 export EXPOSED_PORT=8080
 ```
 
@@ -43,6 +43,18 @@ linked Docker containers, run the following:
 ```bash
 docker-compose up
 ```
+
+## Configure Multiple Clusters
+
+You can modify the `docker-compose.yml` to launch multiple background worker
+containers that poll YARN ResourceManagers on different clusters. Configure each
+container with a different `YARN_ENDPOINT` value and set `REDIS_KEY` to some
+unique identifier for the cluster (e.g., `cluster-a`, `cluster-b`). When
+visiting the Yarnitor web application, information about apps on `cluster-a`
+will be visible under path `http://your-yarnitor-host/cluster-a` and likewise
+for `cluster-b`. Set variable `DEFAULT_CLUSTER_KEY` to one of your configured
+cluster identifiers to determine stats about which cluster, if any, appear when
+the user visits `/` in the web application.
 
 ## Develop
 
@@ -67,8 +79,8 @@ docker-compose run --rm \
 
 ## Test
 
-To run a headless end-to-end smoke test from a mock YARN ResourceManager to the frontend API
-(but not UI), execute:
+To run a headless end-to-end smoke test from a mock YARN ResourceManager to the
+frontend API (but not UI), execute:
 
 ```bash
 make test
@@ -84,4 +96,5 @@ docker-compose -f docker-compose.test.yml run --rm test pytest
 
 ## Credits
 
-[Nanumo Park](https://www.linkedin.com/in/nanumo-park-8b3ba713) created the Yarnitor logo.
+[Nanumo Park](https://www.linkedin.com/in/nanumo-park-8b3ba713) created the
+Yarnitor logo.
