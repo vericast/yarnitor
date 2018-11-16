@@ -61,6 +61,6 @@ target/
 # Project specific
 __pycache__/
 .DS_Store
-
 .idea
+.vscode/
 bower_components/
