@@ -1,3 +1,9 @@
 coverage
-hypothesis
 pytest
+
+# The 4.27.0 release of hypothesis changed the behavior of
+# hypothesis.strategies.example() in such a way that the
+# unit tests no longer succeed. We eventually need to
+# understand that change and adapt to it, but for right
+# now these tests need to work.
+hypothesis==4.26.*
