@@ -60,7 +60,7 @@ def applications():
 
     result = json.dumps({
         'apps': {
-            'app': st.lists(d, min_size=4, average_size=10).example()
+            'app': st.lists(d, min_size=4, max_size=10).example()
         }
     })
     redis.set(request.base_url, result)
@@ -116,7 +116,7 @@ def spark_application(app_id):
         'name': st.text(),
         'submissionTime': st.text(),
         'completionTime': st.text(),
-        'stageIds': st.lists(st.integers(0), average_size=3),
+        'stageIds': st.lists(st.integers(0), max_size=5),
         'status': st.sampled_from(['SUCCEEDED', 'RUNNING', 'FAILED']),
         'numTasks': st.integers(0),
         'numActiveTasks': st.integers(0),
@@ -128,7 +128,7 @@ def spark_application(app_id):
         'numSkippedStages': st.integers(0),
         'numFailedStages': st.integers(0),
     })
-    result = json.dumps(st.lists(d, average_size=3).example())
+    result = json.dumps(st.lists(d, max_size=5).example())
     redis.set(request.base_url, result)
     return jsonify(result)
 
@@ -172,7 +172,7 @@ def mapreduce_application():
     })
     result = json.dumps({
         'jobs': {
-            'job': st.lists(d, average_size=3).example()
+            'job': st.lists(d, max_size=5).example()
         }
     })
     redis.set(request.base_url, result)
